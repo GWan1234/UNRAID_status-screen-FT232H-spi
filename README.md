@@ -75,18 +75,25 @@ Once cobbled together, connect the FT232 board to an available USB port or heade
 
 ## Software Setup
 ### Prerequisites
+- UNRAID
+  - Using the [official Python Docker](https://hub.docker.com/_/python)
+<br>
+
+--- or ---
 - Python 3.7 or newer
 - A working internet connection
-- Your preferred flavor of Linux
+- Your preferred flavor of Linux (only tested in Debian so far)
+  - Requires `apt` as the package manager
+  - Requires `sudo` permissions (as we are interfacing directly with hardware)
 
 > [!IMPORTANT]
-> At a minimum, the `init.sh`, `main.py`, and `settings.yaml` files should be in the same working directory.
+> At a minimum, the [`init.sh`](/init.sh), [`main.py`](/main.py), and [`settings.yaml`](/settings.yaml) files should be in the same working directory.
 
 > [!TIP]
->The script expects there to be a `background.bmp` or an equivalent `240 x 320` resolution image as a splash image placed in the working directory. This image is shown when first loading and left on the screen once the script is terminated until power is disconnected. The splash image is optional but is recommended.
+>The script expects there to be a [`background.bmp`](/Reference%20Images/background.bmp) or an equivalent `240 x 320` resolution image as a splash image placed in the working directory. This image is shown when first loading and left on the screen once the script is terminated until power is disconnected. The splash image is optional but is recommended.
 
 ### Running on UNRAID
-The Docker configuration file needed is in the `docker-config` folder.
+The Docker [configuration file](./docker-config/Status-Screen.xml) needed is in the [`docker-config`](./docker-config/) folder.
 <br />
 *As for how to use this, idk (instructions to come at a later time).*
 <br />
@@ -99,23 +106,26 @@ If the Docker is configured correctly, it will execute the `init.sh` script and 
 Check the Docker log for script output.
 
 ### Running outside of UNRAID
-If running outside of UNRAID (eg. a Raspberry Pi), use the `init-portable.sh` file instead of `init.sh`, heeding the alerts listed in Prerequisites.
-Execute `init-portable.sh` in your terminal and it will do the rest, no need to run in Docker. The script will create its own virtual Python environment and do what is needed to run.
+If running outside of UNRAID (eg. a Raspberry Pi):
+```
+git clone https://github.com/WeegeeNumbuh1/UNRAID_status-screen
+sudo UNRAID_status-screen/init-portable.sh
+```
+The script will create its own virtual Python environment and do what is needed to run.
+
+<details><summary>For Windows users:</summary>
+
+No support. Likely will not run.<br>
+[`UNRAID-screen.py`](./test/UNRAID-screen.py) will work, but assumes you're using VSCode + Juptyer. Also YMMV. You've been warned.
+</details>
 
 ### Settings
-The `settings.yaml` file has comments built-in that explain all the user-adjustable options that can be configured. Refer to that file for details.
+The [`settings.yaml`](./settings.yaml) file has comments built-in that explain all the user-adjustable options that can be configured. Refer to that file for details.
 > [!NOTE]
 > The script has fallbacks for environment settings like `CPU_TEMP_SENSOR` and `NETWORK_INTERFACE` in case they can't be found, and will list out all available sensors when this happens so that you can correct it in the `settings.yaml` file for next time.
 
 ## Version History
-**Always refer to the `Changelog.txt` file for detailed changes as this section will only be updated for x.x or larger releases.**
-- 3.8 (2024-08-09)
-    - First published to Github
-    - Settings are no longer hardcoded into script and are now moved to an external settings file
-    - Changelog now lives in its own file rather than internal to the script
-    - For more detailed changes, see `Changelog.txt`
-- 3.7.x and older (2024-02 to 2024-08)
-    - See `Changelog.txt`
+Refer to [`Changelog.txt`](./Changelog.txt).
 
 ## Roadmap
 - [ ] Figure out blitting with `matplotlib` for significant plot generation speedup

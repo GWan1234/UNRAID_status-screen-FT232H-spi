@@ -34,10 +34,10 @@ print("\n\
 ░▒▓▓▓▓▓ ░▓▓▓ ▒▓▓▒░▓▓░▒▓███  by: WeegeeNumbuh1  ███\n")
 '''
 import time
-START_TIME: float = time.time() # start timing this script
+START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.8.2 --- 2024-09-01"
+VERSION: str = "v.3.8.3 --- 2024-12-09"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 print(f"Version: {VERSION}")
@@ -116,7 +116,7 @@ def sigterm_handler(signal, frame):
     ''' Cleanly exit when this Docker is shut down. '''
     mainpool.shutdown(wait=False, cancel_futures=True)
     disp.image(bg_image, IMAGE_ROTATION) # leave a splash screen up when we exit
-    end_time = round(time.time() - START_TIME, 3)
+    end_time = round(time.monotonic() - START_TIME, 3)
     print(f"- Exit signal commanded at {datetime.datetime.now()}")
     print(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
     print("Main loop stopped. See you next time!")
@@ -239,7 +239,7 @@ def it_broke(type: int) -> None:
     disp.image(bg_image, IMAGE_ROTATION)
     mainpool.shutdown(wait=False, cancel_futures=True)
     if type == 1:
-        end_time = round(time.time() - START_TIME, 3)
+        end_time = round(time.monotonic() - START_TIME, 3)
         print(f"- Process exit commanded at {datetime.datetime.now()}")
         print(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
         raise ResourceWarning("Script terminated due to system conditions.")
@@ -832,7 +832,7 @@ def update_plot() -> None:
     This has the effect of the workers being able to monitor the load this thread imposes.
     - thread_id = 0
     '''
-    plot_start = time.time()
+    plot_start = time.perf_counter()
     # gather system stats
     uptime = f"Uptime: {timedelta_clean(time.monotonic())}"
     if array_valid == True:
@@ -889,26 +889,26 @@ def update_plot() -> None:
                     debug_text.set_text(f"Last plot gen: {round(current_data[-1] * 1000, 1)}ms")
                 else:
                     debug_text.set_text(f"Last render: {round(current_data[-1] * 1000, 1)}ms")
-            frame_number_text.set_text(f"{samples},{dropped_frames} | {timedelta_clean(time.time()-START_TIME)}")
+            frame_number_text.set_text(f"{samples},{dropped_frames} | {timedelta_clean(time.monotonic()-START_TIME)}")
             
     ''' Draw the plots. This can get really slow; can definitely use blitting (eventually) '''
     canvas = plt.get_current_fig_manager().canvas
     canvas.draw()
-    thread_timer(plot_start, time.time(), 0)
+    thread_timer(plot_start, time.perf_counter(), 0)
 
 def plot_renderer() -> None:
     '''
     Renders the plot buffer to display. This is usually the most CPU intense thread on faster systems.
     - thread_id = 1 
     '''
-    render_start = time.time()
+    render_start = time.perf_counter()
     canvas = plt.get_current_fig_manager().canvas
     # option 1
     image = Image.frombuffer('RGBA', canvas.get_width_height(), canvas.buffer_rgba())
     # option 2 (essentially the same as the above; same performance)
     # image = Image.fromarray(np.asarray(canvas.buffer_rgba()))
     disp.image(image, IMAGE_ROTATION) # this internally calls a numpy calculation
-    thread_timer(render_start, time.time(), 1)
+    thread_timer(render_start, time.perf_counter(), 1)
 
 def plot_profiler(samples: int, sample_size: int):
     '''
@@ -934,7 +934,7 @@ def plot_profiler(samples: int, sample_size: int):
         # this is our new emperically stat-driven baseline, in seconds
         real_timeout = np.around(((avg_render + (render_sd / 500)) * 2), 4)
         print(f"Profiler stats of {sample_size} samples ({REFRESH_RATE * PROFILER_COUNT}s | \
-actual: {round((time.time() - START_TIME) - init_time, 2)}s):")
+actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
         print(f"   Plot generation:     avg: {round(avg_render[0] * 1000, 1)}ms \
 | max/min/SD: {render_max[0]}/{render_min[0]}/{render_sd[0]}ms")
         print(f"   Screen render:       avg: {round(avg_render[1] * 1000, 1)}ms \
@@ -954,7 +954,7 @@ def main() -> None:
     if DEBUG == True:
         print(f"• Initialization cleanup: freed {init_gc} object(s).")
     del init_gc
-    init_time = round(time.time() - START_TIME, 3)
+    init_time = round(time.monotonic() - START_TIME, 3)
     print(f"Setup took {init_time} seconds.")
     refresh_rate_limiter(abs(init_time))
     print(f"--- Monitoring started. Refresh rate: {REFRESH_RATE} second(s) | \
@@ -1043,15 +1043,15 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
         samples +=1
         
         if (samples % event_timer_resync) == 0:
-            daily_event_timer = int(86400 // (((time.time() - START_TIME) - init_time) / samples))
+            daily_event_timer = int(86400 // (((time.monotonic() - START_TIME) - init_time) / samples))
             gc.collect()
         if (samples % daily_event_timer) == 0:
             gc.collect()
-            sample_actual_time = round(((time.time() - START_TIME) - init_time) * 1000 / samples, 3) # ms
+            sample_actual_time = round(((time.monotonic() - START_TIME) - init_time) * 1000 / samples, 3) # ms
             current_memory_usage = psutil.Process().memory_info().rss
             this_process_cpu = this_process.cpu_percent(interval=None)
             print(f"\nℹ️ Periodic stat update @ {samples} samples \
-({timedelta_clean(time.time()-START_TIME)}):\n├ {dropped_frames} dropped sample(s) | \
+({timedelta_clean(time.monotonic()-START_TIME)}):\n├ {dropped_frames} dropped sample(s) | \
 {sample_actual_time}ms avg time/sample\
 \n└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
 Current memory use: {bytes2human(current_memory_usage)}")
