@@ -1,7 +1,7 @@
 #!/bin/bash
 # Initialization/bootstrap script for our monitoring script.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.8.2
+# Version = v.3.9.0
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -27,12 +27,21 @@ terminate() {
 	exit 0
 	}
 	
-echo -e "\n${ORANGE}>>> This is the portable script. This will set up the python file to run in a virtual environment."
-echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
 if [ `id -u` -ne 0 ]; then
     echo "Please run as root."
     exit
 fi
+echo -ne "\033]0;UNRAID Status Screen Portable\007" # set window title
+echo -e "\n${ORANGE}>>> Welcome to UNRAID Status Screen."
+echo "Note: This is the portable script. Dependencies needed to run will be installed in /tmp"
+sleep 3s
+echo "      No permanent install will occur and changes will be lost on reboot."
+sleep 3s
+echo "UNRAID Status Screen was designed to run inside a Python Docker image."
+sleep 3s
+echo "If you would like a permanent install, please setup UNRAID Status Screen inside of one."
+sleep 2s
+echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
 echo -e "${FADE}"
 if [ ! -f "$CHECK_FILE" ];
 then 
@@ -111,6 +120,8 @@ then
 	${VENVPATH}/bin/pip3 install --upgrade psutil >/dev/null
 	echo -e "${CHECKMARK}${VERB_TEXT}pyyaml"
 	${VENVPATH}/bin/pip3 install --upgrade pyyaml >/dev/null
+	echo -e "${CHECKMARK}${VERB_TEXT}schedule"
+	${VENVPATH}/bin/pip3 install --upgrade schedule >/dev/null
 	if [ -f "$PROFILING_FLAG" ];
 	then
 		echo -e "${CHECKMARK}ℹ️ Profiling flag detected\n -> ${VERB_TEXT}scalene"

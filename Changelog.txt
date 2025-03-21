@@ -1,5 +1,11 @@
 UNRAID Status Screen Changelog:
 
+- v.3.9.0 (2025-03-20)
+    - Use python schedule module to handle our daily tasks (inspired by my other project, FlightGazer)
+    - Code refactoring
+    - Main script now checks IP address changes
+    - UNRAID Status Screen is now GPLv3 licensed
+
 - v.3.8.3 (2024-12-09)
     - Changed calculation timings to be more accurate
     - Overhauled changelog to make it more readable

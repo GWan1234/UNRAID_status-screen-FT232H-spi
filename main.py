@@ -33,11 +33,27 @@ print("\n\
  ▒▒▓▒ ▒ ░ ▒▓ ░▒▓░░▓  ▒▓▒░ ░░▒▒  ▓▒▓░ ░▒  ▒ ░░ ▒░ ░\n\
 ░▒▓▓▓▓▓ ░▓▓▓ ▒▓▓▒░▓▓░▒▓███  by: WeegeeNumbuh1  ███\n")
 '''
+'''
+    Copyright (C) 2025, WeegeeNumbuh1.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <https://www.gnu.org/licenses/>.
+'''
 import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.8.3 --- 2024-12-09"
+VERSION: str = "v.3.9.0 --- 2025-03-20"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 print(f"Version: {VERSION}")
@@ -111,6 +127,7 @@ BARPLOT_COLORS: list = ['#375e1f','#4a2a7a']
 
 #==| Program setup |==========================================================
 #=============================================================================
+UNRAID_IP = ""
 
 def sigterm_handler(signal, frame):
     ''' Cleanly exit when this Docker is shut down. '''
@@ -158,7 +175,7 @@ def check_settings() -> None:
             cpu_temp_available = False
         del temps_test
     # probe possible temperature names    
-    if cpu_temp_available == True:
+    if cpu_temp_available:
         try:
             test1 = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
             del test1
@@ -215,18 +232,18 @@ def check_settings() -> None:
             network_interface_set = False
 
     print("Settings verification complete.")
-    if DEBUG == True:
+    if DEBUG:
         if psutil.cpu_freq().max == 0:
             cpu_max = "[N/A]"
         else:
             cpu_max = round(psutil.cpu_freq().max / 1000, 2)
-        if cpu_temp_available == True:
+        if cpu_temp_available:
             print(f"• CPU temp sensor: \'{CPU_TEMP_SENSOR}\' on a ~{cpu_max}GHz CPU with {CORE_COUNT} logical core(s)")
         else:
             print(f"• CPU has {CORE_COUNT} logical core(s) @ ~{cpu_max}GHz")
-        if array_valid == True:
+        if array_valid:
             print(f"• Array path: \'{ARRAY_PATH}\'")
-        if network_interface_set == True:
+        if network_interface_set:
             print(f"• Network interface: \'{NETWORK_INTERFACE}\'")
     
     # This whole script is structured around 5 entries. If you want to add or remove stuff, have fun 💥
@@ -249,7 +266,7 @@ def it_broke(type: int) -> None:
 def bytes2human(n, format: str = "%(value).1f%(symbol)s") -> str:
     '''
     Convert bytes to a more readable size.
-    Pulled from _common.py of psutil with the symbols edited to better match this script.
+    Pulled from `_common.py` of `psutil` with the symbols edited to better match this script.
 
     >>> bytes2human(10000)
     '9.8KiB'
@@ -267,7 +284,10 @@ def bytes2human(n, format: str = "%(value).1f%(symbol)s") -> str:
     return format % dict(symbol=symbols[0], value=n)
 
 def get_ip() -> str:
-    ''' Gets us our local IP. Thanks `fatal_error` off of Stack Overflow for this solution. '''
+    ''' Gets us our local IP. Thanks `fatal_error` off of Stack Overflow for this solution.
+    Modifies the global `UNRAID_IP` '''
+    global UNRAID_IP
+    ip_last = UNRAID_IP
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
@@ -277,7 +297,9 @@ def get_ip() -> str:
         IP = '127.0.0.1'
     finally:
         s.close()
-    return IP
+    if ip_last and ip_last != IP:
+        print(f"IP address changed! {ip_last} → {IP}")
+    UNRAID_IP = IP
 
 def timedelta_clean(timeinput: datetime) -> str:
     ''' Cleans up time deltas without the microseconds. '''
@@ -296,7 +318,7 @@ def refresh_rate_limiter(setup_time: float) -> None:
             print_stderr(f"         Refresh rate will be set to 2 seconds. (was {init_refresh}s)")
             REFRESH_RATE = 2
             timeout_wait = [REFRESH_RATE * 1.5, REFRESH_RATE * 1.5]
-        if PROFILING == True:
+        if PROFILING:
             PROFILER_COUNT = 100
     elif setup_time >= 16 and setup_time < 24:
         print_stderr("Warning: Setup took a very considerable amount of time.")
@@ -304,7 +326,7 @@ def refresh_rate_limiter(setup_time: float) -> None:
             print_stderr(f"         Refresh rate will be set to 4 seconds. (was {init_refresh}s)")            
             REFRESH_RATE = 4
             timeout_wait = [REFRESH_RATE * 2, REFRESH_RATE * 2]
-        if PROFILING == True:
+        if PROFILING:
             PROFILER_COUNT = 60
     elif setup_time >= 24 and setup_time < 60:
         print_stderr("Warning: We're running on a literal potato.")
@@ -312,12 +334,12 @@ def refresh_rate_limiter(setup_time: float) -> None:
             REFRESH_RATE = 10
             timeout_wait = [REFRESH_RATE * 2, REFRESH_RATE * 2]
             print_stderr(f"         Refresh rate will be set to 10 seconds. (was {init_refresh}s)")
-        if PROFILING == True:
+        if PROFILING:
             PROFILER_COUNT = 45
     elif setup_time >= 60:
         print_stderr("ERROR: Setup took too long to finish. This system is unsuitable to run this program.")
         it_broke(1)
-    if DEBUG == True:
+    if DEBUG:
         plot_settings.set_text(f"Refresh: {REFRESH_RATE}s | Plot: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s")
 
 def thread_timer(begin_time: float, end_time: float, thread_id: int) -> None:
@@ -348,7 +370,7 @@ array_valid = True
 
 # Get hostname and IP address (this should be static since this is Unraid)
 UNRAID_HOSTNAME = socket.gethostname()
-UNRAID_IP = get_ip()
+get_ip()
 print(f"Hey there, {UNRAID_HOSTNAME} @ {UNRAID_IP}!")
 
 # Check Unraid version
@@ -406,7 +428,7 @@ except:
     print_stderr(f"Warning: Unable to load settings file \'{SETTINGS_FILE}\'\n\
          Using default settings.")
 
-if DEBUG == True:
+if DEBUG:
     print("• Verbose setting enabled. Verbose data will be prefixed with • in the logs")
     print("  and additional data rendered on-screen.")
     print(f"• We're using: {sys.executable}")
@@ -414,7 +436,7 @@ if DEBUG == True:
     #print_stderr("• ℹ️ Testing a stderr message on this line.")
 
 # Reduce traceback fluff and automatic garbage collections
-if DEBUG == False:
+if not DEBUG:
     sys.tracebacklimit = 0
 else:
     sys.tracebacklimit = 1
@@ -431,6 +453,8 @@ try:
     import numpy as np
     # System Stats
     import psutil
+    # schedule
+    import schedule
 except:
     raise ImportError("Required modules failed to load. Check your Python environment.")
 
@@ -473,7 +497,7 @@ cs_pin = digitalio.DigitalInOut(board.C0)
 dc_pin = digitalio.DigitalInOut(board.C1)
 rst_pin = digitalio.DigitalInOut(board.C2)
 disp = ili9341.ILI9341(board.SPI(), cs=cs_pin, dc=dc_pin, rst=rst_pin, baudrate=24000000)
-if DEBUG == True:
+if DEBUG:
     print(f"• Display size: {disp.width}x{disp.height}")
 
 # Have a splash screen while loading
@@ -498,7 +522,7 @@ if HIST_SIZE > 501:
 timeout_wait = [REFRESH_RATE * 1.25, REFRESH_RATE * 1.25]
 matplotlib.use('Agg', force=True)
 
-if DEBUG == True:
+if DEBUG:
     print(f"• Using: matplotlib {matplotlib.__version__}, {matplotlib.get_backend()} backend\n\
          psutil {psutil.version_info} | numpy {np.__version__} | PIL {Image.__version__}")
     
@@ -516,7 +540,7 @@ We expect to only run the following:
 # Get info of our current process
 this_process = psutil.Process()
 this_process_cpu = this_process.cpu_percent(interval=None)
-if DEBUG == True:
+if DEBUG:
     try:
         print(f"• Running on CPU core {this_process.cpu_num()} with {this_process.num_threads()} threads")
     except:
@@ -536,7 +560,7 @@ Take our current CPU load (out of 100) and divide by this number.
 higher value = less effect, lower = more effect
 ex: 100%/200 = 0.5, 100%/100 = 1, 100%/50 = 2, 100%/25 = 4, etc.
 '''
-if PROFILING == True:
+if PROFILING:
     PROFILER_COUNT = 150 
     CPU_AFFECT_RATIO = 20
 
@@ -559,13 +583,14 @@ Choose which stat to display on screen if DEBUG is enabled.
 - anything else = measure both
 '''
 
-REFERENCE_RENDER_SPEED: int = 140
+REFERENCE_RENDER_SPEED: int = 125
 '''
-This is our reference render speed (ms) based on a Ryzen 7 5700G system (my UNRAID hardware) on v.3.x of this script.
+This is our reference render speed (ms) based on a Ryzen 7 5700G system (my UNRAID hardware).
+With `matplotlib` < 3.9, this used to be 140 ms, but `3.10.0` they improved the rendering speed.
 Fun fact, the slowest system this script was tested on was a Broadcom BCM2835 (Raspberry Pi Zero) at 100% CPU load.
 It took anywhere between 4-6 seconds to do a single render.
-On the opposite end was an overclocked Threadripper 7970X at 5.5GHz and it took approximately ~95ms to complete.
- '''
+On the opposite end was an overclocked Threadripper 7970X at 5.5GHz and it took <100ms to complete.
+'''
 
 # Setup arrays we can put latest sensor info into rather than parsing our y_data list every time
 current_data: list = []
@@ -598,7 +623,7 @@ plt.rcParams.update({'font.size': 7})
 
 # Set up text objects we can update
 bbox_setting = dict(facecolor='black', edgecolor='None', pad=0.3, alpha=0.25)
-if DEBUG == True:
+if DEBUG:
     unraid_ver_text = ax[4].annotate(f"Unraid version {UNRAID_VERSION}",
                                      [0, -0.2], xycoords='axes fraction',
                                      verticalalignment='top',
@@ -617,7 +642,7 @@ if DEBUG == True:
                                        verticalalignment='top',
                                        horizontalalignment='right',
                                        family='monospace', fontsize=5, alpha=0.5)
-host_test = ax[0].annotate(f"{UNRAID_HOSTNAME} {UNRAID_IP}",
+host_text = ax[0].annotate(f"{UNRAID_HOSTNAME} {UNRAID_IP}",
                            [0.5, 1], xycoords='axes fraction',
                            verticalalignment='center',
                            horizontalalignment='center',
@@ -717,7 +742,7 @@ try:
     ax[4].set_yticks([1, 2],["Array", "Memory"])        
 except:
     raise Exception("Failed to create plot. This may be caused by incorrect values in \'PLOT_CONFIG\'")
-if DEBUG == True:
+if DEBUG:
     print(f"• Plot length: {HIST_SIZE} samples")
 
 #==| Main threads definitons |================================================
@@ -733,14 +758,13 @@ def update_data() -> None:
            y_data[plot][line].append(new_data_point)
     '''
 
-    # data_start = round(time.time(), 3) # to check how long this function takes
     def cpu_data_load() -> None:
         cpu_percs = psutil.cpu_percent(interval=REFRESH_RATE, percpu=False)
         y_data[0][0].append(cpu_percs)
         cpu_freq = psutil.cpu_freq()         
         cpu_f_ghz = round(cpu_freq.current / 1000, 2)
         current_data[0] = f"{cpu_percs}% {cpu_f_ghz} GHz"
-        if cpu_temp_available == False:
+        if not cpu_temp_available:
             y_data[0][1].append(None)
             current_data[1] = None
         else:
@@ -769,7 +793,7 @@ def update_data() -> None:
     def network_data() -> None:
         # network speed, in MiB/s
         nic_isup: bool = True
-        if network_interface_set == False:
+        if not network_interface_set:
             net_start = psutil.net_io_counters()
             time.sleep(REFRESH_RATE)
             net_finish = psutil.net_io_counters()
@@ -782,7 +806,7 @@ def update_data() -> None:
         network_recv = abs(net_finish.bytes_recv - net_start.bytes_recv) / REFRESH_RATE
         y_data[3][0].append(network_recv / 1048576)
         y_data[3][1].append(network_sent / 1048576)
-        if nic_isup == True:
+        if nic_isup:
             current_data[4] = f"▼ {bytes2human(network_recv)}/s"
             current_data[5] = f"▲ {bytes2human(network_sent)}/s"
         else:
@@ -815,14 +839,13 @@ def update_data() -> None:
         _ = networkpoll.result(timeout=timeout_wait[0])
     except TimeoutError:
         # relay it to our calling function
-        if DEBUG == True:
+        if DEBUG:
             print_stderr("• Notice: Worker threads timed out.")
         raise TimeoutError
     except SystemExit:
         return
     except:
         return
-    #print(f"DEBUG: polling took {round((time.time() - (data_start + REFRESH_RATE)), 3)} seconds ---")
 
 def update_plot() -> None:
     '''
@@ -835,7 +858,7 @@ def update_plot() -> None:
     plot_start = time.perf_counter()
     # gather system stats
     uptime = f"Uptime: {timedelta_clean(time.monotonic())}"
-    if array_valid == True:
+    if array_valid:
         array_use = psutil.disk_usage(ARRAY_PATH)
     else:
         array_use = psutil.disk_usage('/')
@@ -880,8 +903,9 @@ def update_plot() -> None:
         storage_text.set_text(array_str)
         memory_text.set_text(memory_str)
         network_text.set_text(f"{current_data[4]} | {current_data[5]}")
-        uptime_text.set_text(uptime)        
-        if DEBUG == True:
+        uptime_text.set_text(uptime)
+        host_text.set_text(f"{UNRAID_HOSTNAME} {UNRAID_IP}")
+        if DEBUG:
             if not current_data[-1]:
                 debug_text.set_text("Last render: 0ms")
             else:
@@ -947,11 +971,29 @@ actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
     else:
         return
 
+def schedule_thread() -> None:
+    """ Our schedule runner."""
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+def daily_stats() -> None:
+    """ Print daily stats """
+    gc.collect()
+    sample_actual_time = round(((time.monotonic() - START_TIME) - init_time) * 1000 / samples, 3) # ms
+    current_memory_usage = psutil.Process().memory_info().rss
+    this_process_cpu = this_process.cpu_percent(interval=None)
+    print(f"\nℹ️ Periodic stat update @ {samples} samples \
+({timedelta_clean(time.monotonic()-START_TIME)}):\n├ {dropped_frames} dropped sample(s) | \
+{sample_actual_time}ms avg time/sample\
+\n└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
+Current memory use: {bytes2human(current_memory_usage)}")
+
 def main() -> None:
     ''' Loop until Docker shuts down or something breaks. '''
     global samples, dropped_frames, timeout_wait, init_time
     init_gc: int = gc.collect()
-    if DEBUG == True:
+    if DEBUG:
         print(f"• Initialization cleanup: freed {init_gc} object(s).")
     del init_gc
     init_time = round(time.monotonic() - START_TIME, 3)
@@ -971,18 +1013,21 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
 
     if REFRESH_RATE < 1:
         current_timeout = [1,1]
-    if PROFILING == True:
+    if PROFILING:
         print("Performance tracing enabled, waiting for stats...")
-    if DEBUG == True:
+    if DEBUG:
         if PROFILE_DISPLAY_RENDER == 0:
             print("• Display will show plot generation time.")
         elif PROFILE_DISPLAY_RENDER == 1:
             print("• Display will show render thread time.")
         else:
             print("• Display will show full render time.")
-
-    daily_event_timer = int(86400 // REFRESH_RATE) # naive calculation for samples per 24 hours; initial value
-    event_timer_resync = int(36000 // REFRESH_RATE) # sub-timer to trigger daily_event_timer recalculation (~10 hours)
+    
+    # our periodic threads
+    schedule.every().day.do(daily_stats)
+    schedule.every(5).minutes.do(get_ip)
+    schedule_stuff = threading.Thread(target=schedule_thread, name='Schedule-Thread', daemon=True)
+    schedule_stuff.start()
     
     while True:
         data_poller = mainpool.submit(update_data)
@@ -996,14 +1041,14 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
 
         except TimeoutError:
             dropped_frames +=1
-            if DEBUG == True:
+            if DEBUG:
                 print_stderr(f"• Notice: Thread timeout #{dropped_frames}. Skipping next refresh.")
             if (dropped_frames % 10) == 0:
                 # bump up baseline timeout values to help reduce timeouts
                 baseline_timeout = [round(baseline_timeout[0] * 1.25, 4), round(baseline_timeout[1] * 1.25, 4)]
                 timeout_wait = [round(timeout_wait[0] * 1.25, 4), round(timeout_wait[1] * 1.25, 4)]
                 print_stderr(f"Warning: Numerous timeouts ({dropped_frames}) detected. Adjusting internal runtime to compensate.")
-                if DEBUG == True:
+                if DEBUG:
                     print(f"• Updated baseline timeouts: {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms")
             time.sleep(REFRESH_RATE)
             if dropped_frames > 40: # bail out
@@ -1019,7 +1064,7 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
             if PROFILE_DISPLAY_RENDER != 0 and PROFILE_DISPLAY_RENDER != 1:
                 current_data[-1] = np.sum(thread_time)
         
-        if PROFILING == True: # adjusts both baseline_timeout and current_timeout when plot_profiler() is done
+        if PROFILING: # adjusts both baseline_timeout and current_timeout when plot_profiler() is done
             if samples > PROFILER_COUNT:
                 # dynamically adjust timeout based on CPU load
                 timeout_adjust = np.array(baseline_timeout) * (y_data[0][0][-1] / CPU_AFFECT_RATIO)
@@ -1032,29 +1077,15 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
                 baseline_timeout = plot_profiler(samples, PROFILER_COUNT)
                 current_memory_usage = psutil.Process().memory_info().rss
                 this_process_cpu = this_process.cpu_percent(interval=None)
-                print(f"   CPU & memory usage:  {this_process_cpu}% \
+                print(f"   CPU & memory usage: {this_process_cpu}% \
 ({round(this_process_cpu / CORE_COUNT, 3)}% overall CPU) | {bytes2human(current_memory_usage)}")
-                if DEBUG == True:
+                if DEBUG:
                     print(f"• Got new baseline timeouts: \
 {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms (was {timeout_wait[0]}s)")
             else: 
                 pass
                 
         samples +=1
-        
-        if (samples % event_timer_resync) == 0:
-            daily_event_timer = int(86400 // (((time.monotonic() - START_TIME) - init_time) / samples))
-            gc.collect()
-        if (samples % daily_event_timer) == 0:
-            gc.collect()
-            sample_actual_time = round(((time.monotonic() - START_TIME) - init_time) * 1000 / samples, 3) # ms
-            current_memory_usage = psutil.Process().memory_info().rss
-            this_process_cpu = this_process.cpu_percent(interval=None)
-            print(f"\nℹ️ Periodic stat update @ {samples} samples \
-({timedelta_clean(time.monotonic()-START_TIME)}):\n├ {dropped_frames} dropped sample(s) | \
-{sample_actual_time}ms avg time/sample\
-\n└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
-Current memory use: {bytes2human(current_memory_usage)}")
 
 # finally enter main loop
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Initialization/bootstrap script for our Python Docker.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.8.2
+# Version = v.3.9.0
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -111,6 +111,8 @@ if [ $SKIP_CHECK -eq 0 ]; then
 		pip3 install --upgrade psutil >/dev/null
 		echo -e "${CHECKMARK}${VERB_TEXT}pyyaml"
 		pip3 install --upgrade pyyaml >/dev/null
+		echo -e "${CHECKMARK}${VERB_TEXT}schedule"
+		pip3 install --upgrade schedule >/dev/null
 		echo -e "${CHECKMARK}░░░▒▒▓▓ Completed ▓▓▒▒░░░\n"
 	else
 		echo "  Skipping due to no internet."

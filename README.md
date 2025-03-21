@@ -109,7 +109,7 @@ Check the Docker log for script output.
 If running outside of UNRAID (eg. a Raspberry Pi):
 ```
 git clone https://github.com/WeegeeNumbuh1/UNRAID_status-screen
-sudo UNRAID_status-screen/init-portable.sh
+sudo bash UNRAID_status-screen/init-portable.sh
 ```
 The script will create its own virtual Python environment and do what is needed to run.
 
@@ -128,9 +128,20 @@ The [`settings.yaml`](./settings.yaml) file has comments built-in that explain a
 Refer to [`Changelog.txt`](./Changelog.txt).
 
 ## Roadmap
-- [ ] Figure out blitting with `matplotlib` for significant plot generation speedup
-- [ ] Figure out how to make the screen rendering routine work faster
-    - [ ] Use multiple cores? Use a GPU library? Who knows... *(might never happen)*
+- [ ] ~~Figure out blitting with `matplotlib` for significant plot generation speedup~~
+- [ ] ~~Figure out how to make the screen rendering routine work faster~~
+    - [ ] ~~Use multiple cores? Use a GPU library? Who knows... *(might never happen)*~~
+- [x] Works good enough ![](https://cdn.discordapp.com/emojis/389287695903621121.webp?size=20)
+
+## ⚖️ License & Warranty
+UNRAID Status Screen is licensed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) license.<br>
+In terms of warranty:
+
+```
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+```
 
 ## Acknowledgements
 <a href="https://discord.gg/haha98"><img src="https://cdn.discordapp.com/emojis/765011373590970418.webp?size=96&quality=lossless" alt="soootrue" width="64" height="64"></a>
