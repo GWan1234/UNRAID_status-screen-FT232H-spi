@@ -1,7 +1,8 @@
 #!/bin/bash
+{
 # Initialization/bootstrap script for our monitoring script.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.9.0
+# Version = v.3.9.1
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -42,6 +43,11 @@ sleep 3s
 echo "If you would like a permanent install, please setup UNRAID Status Screen inside of one."
 sleep 2s
 echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
+if [ ! -f "${BASEDIR}/main.py" ]; then
+	>&2 echo -e "\n${NC}${RED}>>> ERROR: Cannot find ${BASEDIR}/main.py."
+	sleep 2s
+	exit 1
+fi
 echo -e "${FADE}"
 if [ ! -f "$CHECK_FILE" ];
 then 
@@ -137,11 +143,6 @@ echo "Setup/Initialization took $((ENDTIME - STARTTIME)) seconds."
 echo -e "${NC}"
 echo -e "${GREEN}>>> Dependencies check complete."
 echo -e "${ORANGE}>>> Entering main loop!${NC}"
-if [ ! -f "${BASEDIR}/main.py" ]; then
-	echo -e "\n${NC}${RED}>>> ERROR: Cannot find ${BASEDIR}/main.py."
-	sleep 2s
-	exit 1
-fi
 echo -ne "${FADE}"
 echo "                                                  ";
 echo "   ██   ██ ███   ██ ██████   █████  ██ ██████     ";
@@ -189,3 +190,4 @@ fi
 >&2 echo -e "\n${NC}${RED}>>> Warning: Script exited unexpectedly.
              Please review the output above for error details.${NC}"
 exit 1
+}

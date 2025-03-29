@@ -53,7 +53,7 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.9.0 --- 2025-03-20"
+VERSION: str = "v.3.9.1 --- 2025-03-29"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 print(f"Version: {VERSION}")
@@ -141,7 +141,7 @@ def sigterm_handler(signal, frame):
 
 def print_stderr(*a) -> None:
     ''' Wrapper to send a message to stderr. '''
-    print(*a, file = sys.stderr)
+    print(*a, file = sys.stderr, flush=True)
 
 def check_settings() -> None:
     '''
@@ -304,7 +304,7 @@ def get_ip() -> str:
 def timedelta_clean(timeinput: datetime) -> str:
     ''' Cleans up time deltas without the microseconds. '''
     delta_time = datetime.timedelta(seconds=timeinput)
-    return str(delta_time).split(".")[0]
+    return f"{delta_time}".split(".")[0]
 
 def refresh_rate_limiter(setup_time: float) -> None:
     ''' Adjusts refresh rate for really slow systems. '''
@@ -394,33 +394,27 @@ else:
 try:
     import yaml
     with open(SETTINGS_FILE, mode="rb") as file:
-        settings_loaded = yaml.safe_load(file)
+        settings_loaded: dict = yaml.safe_load(file)
         print(f"Loaded settings file \'{SETTINGS_FILE}\'")
-    try:
-        DEBUG: bool = settings_loaded['DEBUG']
-        REFRESH_RATE: float = settings_loaded['REFRESH_RATE']
-        PLOT_SIZE: float = settings_loaded['PLOT_SIZE']
-        ARRAY_PATH: str = settings_loaded['ARRAY_PATH']
-        CPU_TEMP_SENSOR: str = settings_loaded['CPU_TEMP_SENSOR']
-        NETWORK_INTERFACE: str = settings_loaded['NETWORK_INTERFACE']
-        splash_screen_tmp: str = settings_loaded['SPLASH_SCREEN']
-        IMAGE_ROTATION: int = settings_loaded['IMAGE_ROTATION']
-        BARPLOT_COLORS: list = settings_loaded['BARPLOT_COLORS']
-        PLOT_CONFIG: tuple = settings_loaded['PLOT_CONFIG']
-        if splash_screen_tmp == "default":
-            SPLASH_SCREEN = f"{CURRENT_DIR}/background.bmp"
-        else:
-            SPLASH_SCREEN = splash_screen_tmp
-        del splash_screen_tmp
-        print("Successfully parsed settings file.")
-    except:
-        print_stderr("ERROR: Unable to parse settings file completely.\n\
-       To prevent an inconsistent state, the program will now exit.\n\
-       Please check the settings file for any typos.")
-        time.sleep(5)
-        raise ValueError("Settings file has invalid or missing entries.")
-    finally:
-        del settings_loaded
+
+    DEBUG: bool = settings_loaded.get('DEBUG', DEBUG)
+    REFRESH_RATE: float = settings_loaded.get('REFRESH_RATE', REFRESH_RATE)
+    PLOT_SIZE: float = settings_loaded.get('PLOT_SIZE', PLOT_SIZE)
+    ARRAY_PATH: str = settings_loaded.get('ARRAY_PATH', ARRAY_PATH)
+    CPU_TEMP_SENSOR: str = settings_loaded.get('CPU_TEMP_SENSOR', CPU_TEMP_SENSOR)
+    NETWORK_INTERFACE: str = settings_loaded.get('NETWORK_INTERFACE', NETWORK_INTERFACE)
+    splash_screen_tmp: str = settings_loaded.get('SPLASH_SCREEN', 'none')
+    IMAGE_ROTATION: int = settings_loaded.get('IMAGE_ROTATION', IMAGE_ROTATION)
+    BARPLOT_COLORS: list = settings_loaded.get('BARPLOT_COLORS', BARPLOT_COLORS)
+    PLOT_CONFIG: tuple = settings_loaded.get('PLOT_CONFIG', PLOT_CONFIG)
+    if splash_screen_tmp == "default":
+        SPLASH_SCREEN = f"{CURRENT_DIR}/background.bmp"
+    else:
+        SPLASH_SCREEN = splash_screen_tmp
+    del splash_screen_tmp
+    print("Successfully parsed settings file.")
+    del settings_loaded
+
 except ImportError:
     print_stderr("Warning: Required Python module \'yaml\' could not be loaded and settings file cannot be used.\n\
          Please check your Python environment. Using default settings.")
@@ -485,7 +479,7 @@ except:
              - Insufficient permission to access USB devices. Try running with elevated permissions.\n\
              - The dependencies may not have been set up correctly.")
 
-# print("- Checking status of display:")
+# print if we have the FT232 board connected
 try:
     #Ftdi().open_from_url('ftdi:///?') # this will force a SystemExit, don't use
     Ftdi.show_devices()
@@ -762,15 +756,15 @@ def update_data() -> None:
         cpu_percs = psutil.cpu_percent(interval=REFRESH_RATE, percpu=False)
         y_data[0][0].append(cpu_percs)
         cpu_freq = psutil.cpu_freq()         
-        cpu_f_ghz = round(cpu_freq.current / 1000, 2)
-        current_data[0] = f"{cpu_percs}% {cpu_f_ghz} GHz"
+        cpu_f_ghz = cpu_freq.current / 1000
+        current_data[0] = f"{cpu_percs}% {cpu_f_ghz:.2f} GHz"
         if not cpu_temp_available:
             y_data[0][1].append(None)
             current_data[1] = None
         else:
             cpu_temp = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
             y_data[0][1].append(cpu_temp)
-            current_data[1] = f"{round(cpu_temp, 1)}°C"
+            current_data[1] = f"{cpu_temp:.1f}°C"
         
     def cpu_data_core() -> None:
         global cpu_percs_cores
@@ -910,9 +904,9 @@ def update_plot() -> None:
                 debug_text.set_text("Last render: 0ms")
             else:
                 if PROFILE_DISPLAY_RENDER == 0:
-                    debug_text.set_text(f"Last plot gen: {round(current_data[-1] * 1000, 1)}ms")
+                    debug_text.set_text(f"Last plot gen: {(current_data[-1] * 1000):.1f}ms")
                 else:
-                    debug_text.set_text(f"Last render: {round(current_data[-1] * 1000, 1)}ms")
+                    debug_text.set_text(f"Last render: {(current_data[-1] * 1000):.1f}ms")
             frame_number_text.set_text(f"{samples},{dropped_frames} | {timedelta_clean(time.monotonic()-START_TIME)}")
             
     ''' Draw the plots. This can get really slow; can definitely use blitting (eventually) '''
@@ -972,7 +966,7 @@ actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
         return
 
 def schedule_thread() -> None:
-    """ Our schedule runner."""
+    """ Our schedule runner. """
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -1060,7 +1054,7 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
             break
         except:
             it_broke(2)
-        finally:
+        else:
             if PROFILE_DISPLAY_RENDER != 0 and PROFILE_DISPLAY_RENDER != 1:
                 current_data[-1] = np.sum(thread_time)
         

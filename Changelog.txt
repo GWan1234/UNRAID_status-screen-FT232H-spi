@@ -1,5 +1,9 @@
 UNRAID Status Screen Changelog:
 
+- v.3.9.1 (2025-03-29)
+    - More robust settings imports
+    - Minor formatting refactoring
+
 - v.3.9.0 (2025-03-20)
     - Use python schedule module to handle our daily tasks (inspired by my other project, FlightGazer)
     - Code refactoring

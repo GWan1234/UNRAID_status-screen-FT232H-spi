@@ -1,7 +1,8 @@
 #!/bin/bash
+{
 # Initialization/bootstrap script for our Python Docker.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.9.0
+# Version = v.3.9.1
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -29,6 +30,12 @@ terminate() {
 	
 echo -e "\n${ORANGE}>>> Firing up this Docker."
 echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
+
+if [ ! -f "${BASEDIR}/main.py" ]; then
+	>&2 echo -e "\n${NC}${RED}>>> ERROR: Cannot find ${BASEDIR}/main.py. Cannot start."
+	sleep 2s
+	exit 1
+fi
 
 if [ `id -u` -ne 0 ]; then
 	>&2 echo -e "${RED}>>> ERROR: This script must be run as root.${NC}"
@@ -127,11 +134,6 @@ echo "Setup/Initialization took $((ENDTIME - STARTTIME)) second(s)."
 echo -e "${NC}"
 echo -e "${GREEN}>>> Dependencies check complete."
 echo -e "${ORANGE}>>> Entering main loop!${NC}"
-if [ ! -f "${BASEDIR}/main.py" ]; then
-	echo -e "\n${NC}${RED}>>> ERROR: Cannot find ${BASEDIR}/main.py."
-	sleep 2s
-	exit 1
-fi
 echo -e "${FADE}"
 echo "                                                  ";
 echo "   ██   ██ ███   ██ ██████   █████  ██ ██████     ";
@@ -178,3 +180,4 @@ fi
 # the following will only run if the python script exits with an error
 >&2 echo -e "\n${NC}${RED}>>> Warning: Script exited unexpectedly. Please review the logs for error details.${NC}"
 exit 1
+}
