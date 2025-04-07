@@ -1,5 +1,11 @@
 UNRAID Status Screen Changelog:
 
+- v.3.10.0 (2025-04-07)
+    - Switch to using logging (also inspired by FlightGazer)
+    - Text output tweaks
+        - Finally tame the output of when we list connected devices (has been an issue since the beginning)
+    - Code cleanups
+
 - v.3.9.1 (2025-03-29)
     - More robust settings imports
     - Minor formatting refactoring

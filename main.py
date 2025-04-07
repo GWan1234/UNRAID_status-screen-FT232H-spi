@@ -53,11 +53,9 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.9.1 --- 2025-03-29"
+VERSION: str = "v.3.10.0 --- 2025-04-07"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
-print(f"Version: {VERSION}")
-print(f"Script started: {STARTED_DATE.replace(microsecond=0)}")
 from pathlib import Path
 CURRENT_DIR = Path(__file__).resolve().parent
 # Load built-in modules
@@ -68,6 +66,9 @@ import threading
 import socket
 from collections import deque
 import concurrent.futures as CF
+import logging
+from contextlib import redirect_stdout
+from io import StringIO
 
 #==| Default Config |=====================================================
 #=========================================================================
@@ -129,14 +130,27 @@ BARPLOT_COLORS: list = ['#375e1f','#4a2a7a']
 #=============================================================================
 UNRAID_IP = ""
 
+main_logger = logging.getLogger("UNRAID Status Screen")
+main_logger.setLevel(logging.INFO)
+logging_format = logging.Formatter(
+    fmt='%(asctime)s.%(msecs)03d | %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    )
+stdouthandle = logging.StreamHandler(sys.stdout)
+stdouthandle.setFormatter(logging_format)
+main_logger.addHandler(stdouthandle)
+
+main_logger.info(f"Version: {VERSION}")
+main_logger.info(f"Script started: {STARTED_DATE.replace(microsecond=0)}")
+
 def sigterm_handler(signal, frame):
     ''' Cleanly exit when this Docker is shut down. '''
     mainpool.shutdown(wait=False, cancel_futures=True)
     disp.image(bg_image, IMAGE_ROTATION) # leave a splash screen up when we exit
     end_time = round(time.monotonic() - START_TIME, 3)
-    print(f"- Exit signal commanded at {datetime.datetime.now()}")
-    print(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
-    print("Main loop stopped. See you next time!")
+    main_logger.info(f"- Exit signal commanded at {datetime.datetime.now()}")
+    main_logger.info(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
+    main_logger.info("Main loop stopped. See you next time!")
     sys.exit(0)
 
 def print_stderr(*a) -> None:
@@ -150,68 +164,64 @@ def check_settings() -> None:
     '''
     global cpu_temp_available, network_interface_set, array_valid, REFRESH_RATE, CPU_TEMP_SENSOR, IMAGE_ROTATION, PLOT_SIZE
     if REFRESH_RATE < 0.5:
-        print_stderr("Warning: Refresh rate set too low. Refresh rate will be set to 0.5 seconds.")
+        main_logger.warning("Refresh rate set too low. Refresh rate will be set to 0.5 seconds.")
         REFRESH_RATE = 0.5
 
     if PLOT_SIZE < 1:
-        print_stderr(f"Warning: Desired plot duration ({PLOT_SIZE} min) is too short. Value will be reset to 1 minute.")
+        main_logger.warning(f"Desired plot duration ({PLOT_SIZE} min) is too short. Value will be reset to 1 minute.")
         PLOT_SIZE = 1
 
     valid_rotations = [0, 90, 180, 270]
     if IMAGE_ROTATION in valid_rotations:
         pass
     else:
-        print_stderr(f"Warning: Current image rotation value \'{IMAGE_ROTATION}\' is invalid. Value will be reset to \'0\'.")
+        main_logger.warning(f"Current image rotation value \'{IMAGE_ROTATION}\' is invalid. Value will be reset to \'0\'.")
         IMAGE_ROTATION = 0
     del valid_rotations
 
     if not hasattr(psutil, "sensors_temperatures"):
-        print_stderr("Notice: Temperature readouts not supported on this platform.")
+        main_logger.warning("Temperature readouts not supported on this platform.")
         cpu_temp_available = False
     else:
         temps_test = psutil.sensors_temperatures()
         if not temps_test:
-            print_stderr("Notice: No temperatures found on this system.")
+            main_logger.warning("No temperatures found on this system.")
             cpu_temp_available = False
-        del temps_test
     # probe possible temperature names    
     if cpu_temp_available:
         try:
             test1 = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
-            del test1
         except:
-            print_stderr(f"Warning: CPU temperature \'{CPU_TEMP_SENSOR}\' not found.")
+            main_logger.warning(f"CPU temperature \'{CPU_TEMP_SENSOR}\' not found.")
             # Intel, AMD, then generic names
             probe_sensor_names = iter(['coretemp', 'k10temp', 'k8temp', 'cpu_thermal', 'cpu_thermal_zone'])
             # try until we hit our first success
             while True:
                 sensor_entry = next(probe_sensor_names, "nothing")
                 if sensor_entry == "nothing":
-                    print_stderr("         Continuing without temperature plot.")
+                    main_logger.info(">>> Continuing without temperature plot.")
                     sensor_list = psutil.sensors_temperatures()
-                    print("Notice:  For your reference, the following temperature sensors were found:")
+                    main_logger.info("For your reference, the following temperature sensors were found:")
+                    cputemps = []
                     for name, entries in sensor_list.items():
-                        print(f"{name}   ", end='')
-                    print()
-                    del sensor_list
+                        cputemps.append(name)
+                    main_logger.info(f"{'   '.join(cputemps)}")
                     cpu_temp_available = False
                     break
                 try:
                     test1 = psutil.sensors_temperatures()[sensor_entry][0].current
                     # if successful, continue the rest of this block
-                    print_stderr(f"Notice: \'{CPU_TEMP_SENSOR}\' was not found but \'{sensor_entry}\' was.\n\
-        Please update the configuration to suppress this message in the future.")
+                    main_logger.warning(f"\'{CPU_TEMP_SENSOR}\' was not found but \'{sensor_entry}\' was.")
+                    main_logger.warning("Please update the configuration to suppress this message in the future.")
                     CPU_TEMP_SENSOR = sensor_entry
-                    del test1
                     break
                 except:
                     pass
 
     try:
         test2 = psutil.disk_usage(ARRAY_PATH)
-        del test2
     except:
-        print_stderr(f"Warning: Array path \'{ARRAY_PATH}\' does not exist. Defaulting to '/'.")
+        main_logger.warning(f"Array path \'{ARRAY_PATH}\' does not exist. Defaulting to '/'.")
         array_valid = False
 
     if NETWORK_INTERFACE == "all":
@@ -219,36 +229,37 @@ def check_settings() -> None:
     else:
         try:
             test3 = psutil.net_io_counters(pernic=True)[NETWORK_INTERFACE]
-            del test3
         except:
-            print_stderr(f"Warning: Network interface \'{NETWORK_INTERFACE}\' not found. Network readouts may be incorrect.")
+            main_logger.warning(f"Network interface \'{NETWORK_INTERFACE}\' not found. Network readouts may be incorrect.")
             nic_stats = psutil.net_io_counters(pernic=True)
             nic_names = list(nic_stats.keys())
-            print("Notice:  For your reference, the following network interfaces were found:")
+            main_logger.info("For your reference, the following network interfaces were found:")
+            niclist = []
             for name in nic_names:
-                print(f"{name}   ", end='')
-            print()
-            del nic_stats, nic_names
+                niclist.append(name)
+            main_logger.info(f"{'   '.join(niclist)}")
             network_interface_set = False
 
-    print("Settings verification complete.")
-    if DEBUG:
-        if psutil.cpu_freq().max == 0:
-            cpu_max = "[N/A]"
-        else:
-            cpu_max = round(psutil.cpu_freq().max / 1000, 2)
-        if cpu_temp_available:
-            print(f"• CPU temp sensor: \'{CPU_TEMP_SENSOR}\' on a ~{cpu_max}GHz CPU with {CORE_COUNT} logical core(s)")
-        else:
-            print(f"• CPU has {CORE_COUNT} logical core(s) @ ~{cpu_max}GHz")
-        if array_valid:
-            print(f"• Array path: \'{ARRAY_PATH}\'")
-        if network_interface_set:
-            print(f"• Network interface: \'{NETWORK_INTERFACE}\'")
+    main_logger.info("Settings verification complete.")
+
+    if psutil.cpu_freq().max == 0:
+        cpu_max = "[N/A]"
+    else:
+        cpu_max = round(psutil.cpu_freq().max / 1000, 2)
+
+    if cpu_temp_available:
+        main_logger.debug(f"• CPU temp sensor: \'{CPU_TEMP_SENSOR}\' on a ~{cpu_max}GHz CPU with {CORE_COUNT} logical core(s)")
+    else:
+        main_logger.debug(f"• CPU has {CORE_COUNT} logical core(s) @ ~{cpu_max}GHz")
+
+    if array_valid:
+        main_logger.debug(f"• Array path: \'{ARRAY_PATH}\'")
+    if network_interface_set:
+        main_logger.debug(f"• Network interface: \'{NETWORK_INTERFACE}\'")
     
     # This whole script is structured around 5 entries. If you want to add or remove stuff, have fun 💥
     if len(PLOT_CONFIG) != 5:
-        print_stderr(f"ERROR: There must be 5 entries in the PLOT_CONFIG setting. {len(PLOT_CONFIG)} were found.")
+        main_logger.critical(f"There must be 5 entries in the PLOT_CONFIG setting. {len(PLOT_CONFIG)} were found.")
         raise AssertionError("Incorrect amount of entries in configuration.")
 
 def it_broke(type: int) -> None:
@@ -257,8 +268,8 @@ def it_broke(type: int) -> None:
     mainpool.shutdown(wait=False, cancel_futures=True)
     if type == 1:
         end_time = round(time.monotonic() - START_TIME, 3)
-        print(f"- Process exit commanded at {datetime.datetime.now()}")
-        print(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
+        main_logger.info(f"- Process exit commanded at {datetime.datetime.now()}")
+        main_logger.info(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
         raise ResourceWarning("Script terminated due to system conditions.")
     else:
         raise GeneratorExit("Script terminated due to unhandled error.")
@@ -298,7 +309,7 @@ def get_ip() -> str:
     finally:
         s.close()
     if ip_last and ip_last != IP:
-        print(f"IP address changed! {ip_last} → {IP}")
+        main_logger.info(f"IP address changed! {ip_last} → {IP}")
     UNRAID_IP = IP
 
 def timedelta_clean(timeinput: datetime) -> str:
@@ -313,31 +324,31 @@ def refresh_rate_limiter(setup_time: float) -> None:
     if setup_time >= 0 and setup_time < 10:
         return
     elif setup_time >= 10 and setup_time < 16:
-        print("Notice: Setup took a considerable amount of time. First run?")
+        main_logger.info("Notice: Setup took a considerable amount of time. First run?")
         if REFRESH_RATE < 2:
-            print_stderr(f"         Refresh rate will be set to 2 seconds. (was {init_refresh}s)")
+            main_logger.info(f">>> Refresh rate will be set to 2 seconds. (was {init_refresh}s)")
             REFRESH_RATE = 2
             timeout_wait = [REFRESH_RATE * 1.5, REFRESH_RATE * 1.5]
         if PROFILING:
             PROFILER_COUNT = 100
     elif setup_time >= 16 and setup_time < 24:
-        print_stderr("Warning: Setup took a very considerable amount of time.")
+        main_logger.warning("Setup took a very considerable amount of time.")
         if REFRESH_RATE < 4:
-            print_stderr(f"         Refresh rate will be set to 4 seconds. (was {init_refresh}s)")            
+            main_logger.info(f">>> Refresh rate will be set to 4 seconds. (was {init_refresh}s)")            
             REFRESH_RATE = 4
             timeout_wait = [REFRESH_RATE * 2, REFRESH_RATE * 2]
         if PROFILING:
             PROFILER_COUNT = 60
     elif setup_time >= 24 and setup_time < 60:
-        print_stderr("Warning: We're running on a literal potato.")
+        main_logger.error("We're running on a literal potato. That's crazy.")
         if REFRESH_RATE < 10:
             REFRESH_RATE = 10
             timeout_wait = [REFRESH_RATE * 2, REFRESH_RATE * 2]
-            print_stderr(f"         Refresh rate will be set to 10 seconds. (was {init_refresh}s)")
+            main_logger.info(f">>> Refresh rate will be set to 10 seconds. (was {init_refresh}s)")
         if PROFILING:
             PROFILER_COUNT = 45
     elif setup_time >= 60:
-        print_stderr("ERROR: Setup took too long to finish. This system is unsuitable to run this program.")
+        main_logger.critical("ERROR: Setup took too long to finish. This system is unsuitable to run this program.")
         it_broke(1)
     if DEBUG:
         plot_settings.set_text(f"Refresh: {REFRESH_RATE}s | Plot: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s")
@@ -371,7 +382,7 @@ array_valid = True
 # Get hostname and IP address (this should be static since this is Unraid)
 UNRAID_HOSTNAME = socket.gethostname()
 get_ip()
-print(f"Hey there, {UNRAID_HOSTNAME} @ {UNRAID_IP}!")
+main_logger.info(f"Hey there, {UNRAID_HOSTNAME} @ {UNRAID_IP}!")
 
 # Check Unraid version
 UNRAID_VER_FILE: str = '/rootfs/etc/unraid-version'
@@ -380,10 +391,10 @@ try:
         # String format: 'version="x.x.x"\n'
         input_list = unraid_str.readlines()
     UNRAID_VERSION: str = str(input_list[0]).split('"')[1]
-    print(f"We're running in Unraid version {UNRAID_VERSION}")
+    main_logger.info(f"We're running in Unraid version {UNRAID_VERSION}")
     del input_list, UNRAID_VER_FILE
 except:
-    print_stderr("Warning: are we running in UNRAID?")
+    main_logger.warning("Are we running in UNRAID?")
     UNRAID_VERSION: str = "Unknown"
 
 # Load our settings file
@@ -395,7 +406,7 @@ try:
     import yaml
     with open(SETTINGS_FILE, mode="rb") as file:
         settings_loaded: dict = yaml.safe_load(file)
-        print(f"Loaded settings file \'{SETTINGS_FILE}\'")
+        main_logger.info(f"Loaded settings file \'{SETTINGS_FILE}\'")
 
     DEBUG: bool = settings_loaded.get('DEBUG', DEBUG)
     REFRESH_RATE: float = settings_loaded.get('REFRESH_RATE', REFRESH_RATE)
@@ -412,22 +423,22 @@ try:
     else:
         SPLASH_SCREEN = splash_screen_tmp
     del splash_screen_tmp
-    print("Successfully parsed settings file.")
     del settings_loaded
 
 except ImportError:
-    print_stderr("Warning: Required Python module \'yaml\' could not be loaded and settings file cannot be used.\n\
-         Please check your Python environment. Using default settings.")
+    main_logger.error("Required Python module \'yaml\' could not be loaded and settings file cannot be used.")
+    main_logger.info(">>> Please check your Python environment. Using default settings.")
 except:
-    print_stderr(f"Warning: Unable to load settings file \'{SETTINGS_FILE}\'\n\
-         Using default settings.")
+    main_logger.warning(f"Unable to load settings file \'{SETTINGS_FILE}\'. Using default settings.")
 
 if DEBUG:
-    print("• Verbose setting enabled. Verbose data will be prefixed with • in the logs")
-    print("  and additional data rendered on-screen.")
-    print(f"• We're using: {sys.executable}")
-    print(f"• We're running in: {CURRENT_DIR}")
-    #print_stderr("• ℹ️ Testing a stderr message on this line.")
+    main_logger.setLevel(logging.DEBUG)
+
+main_logger.debug("• Verbose setting enabled. Verbose data will be prefixed with • in the logs")
+main_logger.debug("  and additional data rendered on-screen.")
+main_logger.debug(f"• We're using: {sys.executable}")
+main_logger.debug(f"• We're running in: {CURRENT_DIR}")
+#print_stderr("• ℹ️ Testing a stderr message on this line.")
 
 # Reduce traceback fluff and automatic garbage collections
 if not DEBUG:
@@ -482,7 +493,15 @@ except:
 # print if we have the FT232 board connected
 try:
     #Ftdi().open_from_url('ftdi:///?') # this will force a SystemExit, don't use
-    Ftdi.show_devices()
+    ''' Ftdi.show_devices() prints directly to stdout, bypassing our logger.
+    We temporarily capture its output, store the result, and parse it to print
+    through our logger. '''
+    with redirect_stdout(StringIO()) as ftdi_devices:
+        Ftdi.show_devices()
+    # split by newlines, remove any lines with nothing in them
+    ftdi_output = list(filter(None, ftdi_devices.getvalue().split("\n")))
+    for entry in range(len(ftdi_output)):
+        main_logger.info(ftdi_output[entry])
 except:
     it_broke(2)
 
@@ -491,8 +510,7 @@ cs_pin = digitalio.DigitalInOut(board.C0)
 dc_pin = digitalio.DigitalInOut(board.C1)
 rst_pin = digitalio.DigitalInOut(board.C2)
 disp = ili9341.ILI9341(board.SPI(), cs=cs_pin, dc=dc_pin, rst=rst_pin, baudrate=24000000)
-if DEBUG:
-    print(f"• Display size: {disp.width}x{disp.height}")
+main_logger.debug(f"• Display size: {disp.width}x{disp.height}")
 
 # Have a splash screen while loading
 if SPLASH_SCREEN == "none":
@@ -502,7 +520,7 @@ else:
         bg_image = Image.open(SPLASH_SCREEN).convert('RGB')
     except:
         bg_image = Image.new('RGB', (disp.width, disp.height))    
-        print_stderr(f"Notice: Unable to load splash screen \'{SPLASH_SCREEN}\'. Check your configuration.")
+        main_logger.warning(f"Unable to load splash screen \'{SPLASH_SCREEN}\'. Check your configuration.")
 disp.image(bg_image, IMAGE_ROTATION)
 
 # Convert desired plot duration to plot size
@@ -510,15 +528,14 @@ HIST_SIZE = int((PLOT_SIZE * 60) // REFRESH_RATE) + 1
 ''' Our plot length '''
 if HIST_SIZE > 501:
     HIST_SIZE = 501
-    print_stderr(f"Warning: Desired plot history ({PLOT_SIZE}min) cannot fit into plot. Data will be truncated.")
+    main_logger.warning(f"Desired plot history ({PLOT_SIZE}min) cannot fit into plot. Data will be truncated.")
 
 # our baseline thread timeout until/if the profiler takes over
 timeout_wait = [REFRESH_RATE * 1.25, REFRESH_RATE * 1.25]
 matplotlib.use('Agg', force=True)
 
-if DEBUG:
-    print(f"• Using: matplotlib {matplotlib.__version__}, {matplotlib.get_backend()} backend\n\
-         psutil {psutil.version_info} | numpy {np.__version__} | PIL {Image.__version__}")
+main_logger.debug(f"• Using: matplotlib {matplotlib.__version__}, {matplotlib.get_backend()} backend")
+main_logger.debug(f"         psutil {psutil.version_info} | numpy {np.__version__} | PIL {Image.__version__}")
     
 # Start our thread pool
 mainpool = CF.ThreadPoolExecutor(max_workers=7)
@@ -534,11 +551,10 @@ We expect to only run the following:
 # Get info of our current process
 this_process = psutil.Process()
 this_process_cpu = this_process.cpu_percent(interval=None)
-if DEBUG:
-    try:
-        print(f"• Running on CPU core {this_process.cpu_num()} with {this_process.num_threads()} threads")
-    except:
-        print(f"• Running with {this_process.num_threads()} threads")
+try:
+    main_logger.debug(f"• Running on CPU core {this_process.cpu_num()} with {this_process.num_threads()} threads")
+except:
+    main_logger.debug(f"• Running with {this_process.num_threads()} threads")
 
 PROFILING: bool = True
 ''' Enable or disable the thread timeout profiler, HIGHLY recommended to be left as True '''
@@ -579,7 +595,7 @@ Choose which stat to display on screen if DEBUG is enabled.
 
 REFERENCE_RENDER_SPEED: int = 125
 '''
-This is our reference render speed (ms) based on a Ryzen 7 5700G system (my UNRAID hardware).
+This is our reference render speed (ms) based on a Ryzen 7 5700G system (my UNRAID hardware as of 2024).
 With `matplotlib` < 3.9, this used to be 140 ms, but `3.10.0` they improved the rendering speed.
 Fun fact, the slowest system this script was tested on was a Broadcom BCM2835 (Raspberry Pi Zero) at 100% CPU load.
 It took anywhere between 4-6 seconds to do a single render.
@@ -736,8 +752,8 @@ try:
     ax[4].set_yticks([1, 2],["Array", "Memory"])        
 except:
     raise Exception("Failed to create plot. This may be caused by incorrect values in \'PLOT_CONFIG\'")
-if DEBUG:
-    print(f"• Plot length: {HIST_SIZE} samples")
+
+main_logger.debug(f"• Plot length: {HIST_SIZE} samples")
 
 #==| Main threads definitons |================================================
 #=============================================================================
@@ -834,7 +850,7 @@ def update_data() -> None:
     except TimeoutError:
         # relay it to our calling function
         if DEBUG:
-            print_stderr("• Notice: Worker threads timed out.")
+            main_logger.warning("• Worker threads timed out.")
         raise TimeoutError
     except SystemExit:
         return
@@ -909,7 +925,7 @@ def update_plot() -> None:
                     debug_text.set_text(f"Last render: {(current_data[-1] * 1000):.1f}ms")
             frame_number_text.set_text(f"{samples},{dropped_frames} | {timedelta_clean(time.monotonic()-START_TIME)}")
             
-    ''' Draw the plots. This can get really slow; can definitely use blitting (eventually) '''
+    ''' Draw the plots. '''
     canvas = plt.get_current_fig_manager().canvas
     canvas.draw()
     thread_timer(plot_start, time.perf_counter(), 0)
@@ -951,14 +967,13 @@ def plot_profiler(samples: int, sample_size: int):
         render_full = np.around((avg_render[0] + avg_render[1]) * 1000, 1)
         # this is our new emperically stat-driven baseline, in seconds
         real_timeout = np.around(((avg_render + (render_sd / 500)) * 2), 4)
-        print(f"Profiler stats of {sample_size} samples ({REFRESH_RATE * PROFILER_COUNT}s | \
+        main_logger.info(f"Profiler stats of {sample_size} samples ({REFRESH_RATE * PROFILER_COUNT}s | \
 actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
-        print(f"   Plot generation:     avg: {round(avg_render[0] * 1000, 1)}ms \
+        main_logger.info(f"   Plot generation:     avg: {round(avg_render[0] * 1000, 1)}ms \
 | max/min/SD: {render_max[0]}/{render_min[0]}/{render_sd[0]}ms")
-        print(f"   Screen render:       avg: {round(avg_render[1] * 1000, 1)}ms \
+        main_logger.info(f"   Screen render:       avg: {round(avg_render[1] * 1000, 1)}ms \
 | max/min/SD: {render_max[1]}/{render_min[1]}/{render_sd[1]}ms")
-        print(f"   Full render average: {render_full}ms ({round((REFERENCE_RENDER_SPEED/render_full) * 100, 1)}% as fast as baseline)")
-        del time_array, avg_render, render_sd, render_max, render_min
+        main_logger.info(f"   Full render average: {render_full}ms ({round((REFERENCE_RENDER_SPEED/render_full) * 100, 1)}% as fast as baseline)")
         return real_timeout
     elif samples > sample_size: # in case we use this past the polling amount
         return
@@ -977,26 +992,33 @@ def daily_stats() -> None:
     sample_actual_time = round(((time.monotonic() - START_TIME) - init_time) * 1000 / samples, 3) # ms
     current_memory_usage = psutil.Process().memory_info().rss
     this_process_cpu = this_process.cpu_percent(interval=None)
-    print(f"\nℹ️ Periodic stat update @ {samples} samples \
-({timedelta_clean(time.monotonic()-START_TIME)}):\n├ {dropped_frames} dropped sample(s) | \
-{sample_actual_time}ms avg time/sample\
-\n└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
+    print()
+    main_logger.info(f"ℹ️ Periodic stat update @ {samples} samples \
+({timedelta_clean(time.monotonic()-START_TIME)}):")
+    main_logger.info(f"├ {dropped_frames} dropped sample(s) | \
+{sample_actual_time}ms avg time/sample")
+    main_logger.info(f"└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
 Current memory use: {bytes2human(current_memory_usage)}")
 
 def main() -> None:
     ''' Loop until Docker shuts down or something breaks. '''
     global samples, dropped_frames, timeout_wait, init_time
     init_gc: int = gc.collect()
-    if DEBUG:
-        print(f"• Initialization cleanup: freed {init_gc} object(s).")
+    main_logger.debug(f"• Initialization cleanup: freed {init_gc} object(s).")
     del init_gc
     init_time = round(time.monotonic() - START_TIME, 3)
-    print(f"Setup took {init_time} seconds.")
+    main_logger.info(f"Setup took {init_time} seconds.")
     refresh_rate_limiter(abs(init_time))
-    print(f"--- Monitoring started. Refresh rate: {REFRESH_RATE} second(s) | \
+    main_logger.info(f"--- Monitoring started. Refresh rate: {REFRESH_RATE} second(s) | \
 Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (HIST_SIZE - 1) / 60, 2)}min) ---")
     # register handler for SIGTERM
     signal.signal(signal.SIGTERM, sigterm_handler)
+    # our periodic threads
+    schedule.every().day.do(daily_stats)
+    schedule.every(5).minutes.do(get_ip)
+    schedule_stuff = threading.Thread(target=schedule_thread, name='Schedule-Thread', daemon=True)
+    schedule_stuff.start()
+
     update_data() # get initial stats on startup
 
     current_timeout = timeout_wait 
@@ -1008,20 +1030,15 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
     if REFRESH_RATE < 1:
         current_timeout = [1,1]
     if PROFILING:
-        print("Performance tracing enabled, waiting for stats...")
-    if DEBUG:
-        if PROFILE_DISPLAY_RENDER == 0:
-            print("• Display will show plot generation time.")
-        elif PROFILE_DISPLAY_RENDER == 1:
-            print("• Display will show render thread time.")
-        else:
-            print("• Display will show full render time.")
+        main_logger.info("Performance tracing enabled, waiting for stats...")
+
+    if PROFILE_DISPLAY_RENDER == 0:
+        main_logger.debug("• Display will show plot generation time.")
+    elif PROFILE_DISPLAY_RENDER == 1:
+        main_logger.debug("• Display will show render thread time.")
+    else:
+        main_logger.debug("• Display will show full render time.")
     
-    # our periodic threads
-    schedule.every().day.do(daily_stats)
-    schedule.every(5).minutes.do(get_ip)
-    schedule_stuff = threading.Thread(target=schedule_thread, name='Schedule-Thread', daemon=True)
-    schedule_stuff.start()
     
     while True:
         data_poller = mainpool.submit(update_data)
@@ -1036,17 +1053,17 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
         except TimeoutError:
             dropped_frames +=1
             if DEBUG:
-                print_stderr(f"• Notice: Thread timeout #{dropped_frames}. Skipping next refresh.")
+                main_logger.warning(f"• Thread timeout #{dropped_frames}. Skipping next refresh.")
             if (dropped_frames % 10) == 0:
                 # bump up baseline timeout values to help reduce timeouts
                 baseline_timeout = [round(baseline_timeout[0] * 1.25, 4), round(baseline_timeout[1] * 1.25, 4)]
                 timeout_wait = [round(timeout_wait[0] * 1.25, 4), round(timeout_wait[1] * 1.25, 4)]
-                print_stderr(f"Warning: Numerous timeouts ({dropped_frames}) detected. Adjusting internal runtime to compensate.")
+                main_logger.warning(f"Numerous timeouts ({dropped_frames}) detected. Adjusting internal runtime to compensate.")
                 if DEBUG:
-                    print(f"• Updated baseline timeouts: {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms")
+                    main_logger.debug(f"• Updated baseline timeouts: {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms")
             time.sleep(REFRESH_RATE)
             if dropped_frames > 40: # bail out
-                print_stderr("ERROR: Maximum timeouts exceeded.")
+                main_logger.critical("ERROR: Maximum timeouts exceeded.")
                 it_broke(1)
             continue
 
@@ -1071,10 +1088,10 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
                 baseline_timeout = plot_profiler(samples, PROFILER_COUNT)
                 current_memory_usage = psutil.Process().memory_info().rss
                 this_process_cpu = this_process.cpu_percent(interval=None)
-                print(f"   CPU & memory usage: {this_process_cpu}% \
+                main_logger.info(f"   CPU & memory usage: {this_process_cpu}% \
 ({round(this_process_cpu / CORE_COUNT, 3)}% overall CPU) | {bytes2human(current_memory_usage)}")
                 if DEBUG:
-                    print(f"• Got new baseline timeouts: \
+                    main_logger.debug(f"• Got new baseline timeouts: \
 {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms (was {timeout_wait[0]}s)")
             else: 
                 pass

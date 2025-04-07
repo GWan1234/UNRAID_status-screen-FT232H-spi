@@ -80,7 +80,7 @@ Once cobbled together, connect the FT232 board to an available USB port or heade
 <br>
 
 --- or ---
-- Python 3.7 or newer
+- Python 3.9 or newer
 - A working internet connection
 - Your preferred flavor of Linux (only tested in Debian so far)
   - Requires `apt` as the package manager
