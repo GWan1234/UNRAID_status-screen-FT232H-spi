@@ -1,5 +1,9 @@
 UNRAID Status Screen Changelog:
 
+- v.3.10.1 (2025-04-10)
+    - Fixes for the portable init script
+    - Update documentation and Unraid Docker template xml file
+    
 - v.3.10.0 (2025-04-07)
     - Switch to using logging (also inspired by FlightGazer)
     - Text output tweaks

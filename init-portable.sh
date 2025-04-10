@@ -2,7 +2,7 @@
 {
 # Initialization/bootstrap script for our monitoring script.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.10.0
+# Version = v.3.10.1
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -30,7 +30,7 @@ terminate() {
 	
 if [ `id -u` -ne 0 ]; then
     echo "Please run as root."
-    exit
+    exit 1
 fi
 echo -ne "\033]0;UNRAID Status Screen Portable\007" # set window title
 echo -e "\n${ORANGE}>>> Welcome to UNRAID Status Screen."
@@ -41,6 +41,8 @@ sleep 3s
 echo "UNRAID Status Screen was designed to run inside a Python Docker image."
 sleep 3s
 echo "If you would like a permanent install, please setup UNRAID Status Screen inside of one."
+sleep 2s
+echo "Protip: run this script in tmux!"
 sleep 2s
 echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
 if [ ! -f "${BASEDIR}/main.py" ]; then
@@ -64,10 +66,10 @@ echo "> Checking system image..."
 # check internet connection
 wget -q --timeout=10 --spider http://google.com
 if [ $? -ne 0 ]; then
-	INTERNET_STAT = 1
+	INTERNET_STAT=1
 fi
 
-if [ ! -f "$CHECK_FILE" -a $INTERNET_STAT -eq 1 ]; then
+if [ ! -f "$CHECK_FILE" ] && [ $INTERNET_STAT -eq 1 ]; then
 	>&2 echo -e "${NC}${RED}>>> ERROR: Internet connection could not be established. Initial setup cannot continue.${NC}"
 	sleep 2s
 	exit 1

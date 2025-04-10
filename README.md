@@ -76,7 +76,6 @@ Once cobbled together, connect the FT232 board to an available USB port or heade
 ## Software Setup
 ### Prerequisites
 - UNRAID
-  - Using the [official Python Docker](https://hub.docker.com/_/python)
 <br>
 
 --- or ---
@@ -86,21 +85,34 @@ Once cobbled together, connect the FT232 board to an available USB port or heade
   - Requires `apt` as the package manager
   - Requires `sudo` permissions (as we are interfacing directly with hardware)
 
-> [!IMPORTANT]
-> At a minimum, the [`init.sh`](/init.sh), [`main.py`](/main.py), and [`settings.yaml`](/settings.yaml) files should be in the same working directory.
-
-> [!TIP]
->The script expects there to be a [`background.bmp`](/Reference%20Images/background.bmp) or an equivalent `240 x 320` resolution image as a splash image placed in the working directory. This image is shown when first loading and left on the screen once the script is terminated until power is disconnected. The splash image is optional but is recommended.
-
 ### Running on UNRAID
-The Docker [configuration file](./docker-config/Status-Screen.xml) needed is in the [`docker-config`](./docker-config/) folder.
-<br />
-*As for how to use this, idk (instructions to come at a later time).*
+
+#### Getting set up
+*This guide assumes you have the [Dynamix File Manager plugin](https://forums.unraid.net/topic/120982-dynamix-file-manager/) installed, or you're running UNRAID 7+.*
+1. On a separate computer, go to [this project's Tags](https://github.com/WeegeeNumbuh1/UNRAID_status-screen/tags) and under the latest Tag, click the `zip` link to download the latest files.
+2. Extract the downloaded zip file's contents.
+3. Open the UNRAID GUI.
+4. In the Shares tab, open the `appdata` folder by pressing the arrow pointing out of the box at the far left.
+5. Press the Create button at the bottom, and create a new folder named `status-screen`. In the pop-up, press the Start button to make the folder.
+6. Navigate to `status-screen`.
+7. Press the Upload button and select all the files & folders extracted from Step 2.
+8. Make sure the [`init.sh`](/init.sh), [`main.py`](/main.py), and [`settings.yaml`](/settings.yaml) files are in that folder and that they are not inside another folder.
+9. Press the Done button at the bottom.
+
+#### Setting up the Docker
+10. Navigate to the Main tab.
+11. Under the Boot Device section, press the arrow pointing out of the box next to `Flash`.
+12. Navigate to `config/plugins/dockerMan/templates-user`.
+13. Press the Upload button, and navigate to where the files were extracted in Step 2. In the `docker-config` folder, there should be a `my-UNRAID_status-screen.xml` file. Select that file to upload.
+14. Press the Done button at the bottom.
+15. Navigate to the Docker tab.
+16. Press the "Add Container" button.
+17. Under `Template`, `UNRAID_status-screen` should appear. Select it.
+18. The fields should auto-populate.
+19. Under the `Script Source` option, make sure it says `/mnt/user/appdata/status-screen` and edit it if it doesn't match.
+20. Press the Apply button. The Docker will begin building and run.
 <br />
 
-Assuming you have the Docker image sorted out using the config file:
-<br />
-Make a folder in `appdata` and place the needed files in it. With the WebGUI, edit the Docker. Under the `Script Source` option, point it to `/mnt/user/appdata/[yourfolderhere]`.
 If the Docker is configured correctly, it will execute the `init.sh` script and should start monitoring your system.
 <br />
 Check the Docker log for script output.
@@ -108,7 +120,7 @@ Check the Docker log for script output.
 ### Running outside of UNRAID
 If running outside of UNRAID (eg. a Raspberry Pi):
 ```
-git clone https://github.com/WeegeeNumbuh1/UNRAID_status-screen
+git clone --depth=1 https://github.com/WeegeeNumbuh1/UNRAID_status-screen
 sudo bash UNRAID_status-screen/init-portable.sh
 ```
 The script will create its own virtual Python environment and do what is needed to run.
@@ -120,9 +132,12 @@ No support. Likely will not run.<br>
 </details>
 
 ### Settings
-The [`settings.yaml`](./settings.yaml) file has comments built-in that explain all the user-adjustable options that can be configured. Refer to that file for details.
+The [`settings.yaml`](./settings.yaml) file has comments built-in that explain all the user-adjustable options that can be configured. Refer to that file for details. Any changes require the Docker or the script restarted to take effect.
 > [!NOTE]
 > The script has fallbacks for environment settings like `CPU_TEMP_SENSOR` and `NETWORK_INTERFACE` in case they can't be found, and will list out all available sensors when this happens so that you can correct it in the `settings.yaml` file for next time.
+
+> [!TIP]
+>The script expects there to be a [`background.bmp`](/Reference%20Images/background.bmp) or an equivalent `240 x 320` resolution image as a splash image placed in the working directory. This image is shown when first loading and left on the screen once the script is terminated until power is disconnected. The splash image is optional but is recommended.
 
 ## Version History
 Refer to [`Changelog.txt`](./Changelog.txt).

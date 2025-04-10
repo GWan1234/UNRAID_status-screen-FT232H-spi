@@ -2,7 +2,7 @@
 {
 # Initialization/bootstrap script for our Python Docker.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.10.0
+# Version = v.3.10.1
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -70,7 +70,7 @@ if [ $SKIP_CHECK -eq 0 ]; then
 		>&2 echo -e "${NC}${RED}>>> Warning: Failed to connect to internet. File checking will be skipped.${FADE}"
 	fi
 
-	if [ ! -f "$CHECK_FILE" -a $INTERNET_STAT -eq 1 ]; then
+	if [ ! -f "$CHECK_FILE" ] && [ $INTERNET_STAT -eq 1 ]; then
 		>&2 echo -e "${NC}${RED}>>> ERROR: Initial setup cannot continue. Internet connection is required.${NC}"
 		sleep 2s
 		exit 1

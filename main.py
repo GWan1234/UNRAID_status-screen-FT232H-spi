@@ -53,7 +53,7 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.10.0 --- 2025-04-07"
+VERSION: str = "v.3.10.1 --- 2025-04-10"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 from pathlib import Path
