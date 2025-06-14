@@ -2,7 +2,7 @@
 {
 # Initialization/bootstrap script for our Python Docker.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.10.1
+# Version = v.3.11.0
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -54,8 +54,8 @@ else
 	date -r $CHECK_FILE
 	last_check_time=$(date -r $CHECK_FILE '+%s')
 	# 1 month = 2592000 seconds
-	if [ $((STARTTIME - last_check_time)) -lt 2592000 ]; then
-		echo "> Last check was less than a month ago, skipping tests 👍"
+	if [ $((STARTTIME - last_check_time)) -lt 7776000 ]; then
+		echo "> Last check was less than 3 months ago, skipping tests 👍"
 		SKIP_CHECK=1
 	fi
 	VERB_TEXT='Checking: '

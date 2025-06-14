@@ -24,7 +24,7 @@ Network type should be set to 'host' for network statistics.</Overview>
   <CPUset/>
   <DonateText/>
   <DonateLink/>
-  <Requires>An ILI9341 display and an FT232H board.</Requires>
+  <Requires>An ILI9341 display and an FT232H board connected together and plugged into a USB port.</Requires>
   <Config Name="Script Source" Target="/app" Default="/mnt/user/appdata/status-screen/" Mode="ro" Description="Where the script files are located in UNRAID" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/python/status-screen/</Config>
   <Config Name="/dev" Target="/dev" Default="/dev" Mode="rw" Description="Pass current devices connected to this UNRAID system to this Docker. Needed to find the FT232H board" Type="Path" Display="advanced" Required="true" Mask="false">/dev</Config>
   <Config Name="/udev" Target="/run/udev" Default="/run/udev" Mode="ro" Description="Passes device IDs" Type="Path" Display="advanced" Required="true" Mask="false">/run/udev</Config>

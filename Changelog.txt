@@ -1,5 +1,10 @@
 UNRAID Status Screen Changelog:
 
+- v.3.11.0 (2025-06-14)
+    - Refactoring how the data polling threads are handled in the threadpool
+    - Initialization script now waits 3 months to check/update dependencies
+    - Minor code fixes and documentation updates
+
 - v.3.10.1 (2025-04-10)
     - Fixes for the portable init script
     - Update documentation and Unraid Docker template xml file

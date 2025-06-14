@@ -53,7 +53,7 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.10.1 --- 2025-04-10"
+VERSION: str = "v.3.11.0 --- 2025-06-14"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 from pathlib import Path
@@ -187,7 +187,7 @@ def check_settings() -> None:
         if not temps_test:
             main_logger.warning("No temperatures found on this system.")
             cpu_temp_available = False
-    # probe possible temperature names    
+    # probe possible temperature names
     if cpu_temp_available:
         try:
             test1 = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
@@ -334,7 +334,7 @@ def refresh_rate_limiter(setup_time: float) -> None:
     elif setup_time >= 16 and setup_time < 24:
         main_logger.warning("Setup took a very considerable amount of time.")
         if REFRESH_RATE < 4:
-            main_logger.info(f">>> Refresh rate will be set to 4 seconds. (was {init_refresh}s)")            
+            main_logger.info(f">>> Refresh rate will be set to 4 seconds. (was {init_refresh}s)")
             REFRESH_RATE = 4
             timeout_wait = [REFRESH_RATE * 2, REFRESH_RATE * 2]
         if PROFILING:
@@ -838,23 +838,25 @@ def update_data() -> None:
     Gather stats over REFRESH_RATE instead of waiting for each one sequentially
     and use the thread pool
     '''
-    cpupoll = mainpool.submit(cpu_data_load)
-    cpucorepoll = mainpool.submit(cpu_data_core)
-    diskpoll = mainpool.submit(disk_data)
-    networkpoll = mainpool.submit(network_data)
-    try: # block until all threads finish
-        _ = cpupoll.result(timeout=timeout_wait[0])
-        _ = cpucorepoll.result(timeout=timeout_wait[0])
-        _ = diskpoll.result(timeout=timeout_wait[0])
-        _ = networkpoll.result(timeout=timeout_wait[0])
-    except TimeoutError:
-        # relay it to our calling function
-        if DEBUG:
-            main_logger.warning("• Worker threads timed out.")
-        raise TimeoutError
+    futures = []
+    futures.append(mainpool.submit(cpu_data_load))
+    futures.append(mainpool.submit(cpu_data_core))
+    futures.append(mainpool.submit(disk_data))
+    futures.append(mainpool.submit(network_data))
+    try:
+        done, not_done = CF.wait(
+            futures,
+            timeout=timeout_wait[0],
+            return_when="ALL_COMPLETED"
+        )
+        if len(not_done) > 0:
+            if DEBUG:
+                main_logger.warning("• Worker threads timed out.")
+            raise TimeoutError
     except SystemExit:
         return
-    except:
+    except Exception as e:
+        main_logger.error(f"Data polling failed: {e}")
         return
 
 def update_plot() -> None:
@@ -889,7 +891,7 @@ def update_plot() -> None:
                 line.set_ydata(y_data[plot][index])
             # autoscale if not specified
             if 'ylim' not in PLOT_CONFIG[plot].keys():
-                ax[plot].relim() # recompute data limits             
+                ax[plot].relim() # recompute data limits
                 ax[plot].autoscale(enable=True, axis='y') # reenable
                 ax[plot].set_ylim(bottom=0) # this leaves y max untouched and sets autoscale off
                 ax[plot].autoscale_view(scalex=False) # scale the plot
@@ -905,7 +907,7 @@ def update_plot() -> None:
         # ax[4].barh(2, memory_use.percent, facecolor='#4a2a7a')
         
         # update text in plots with last polled data
-        if current_data[1] == None:
+        if current_data[1] is None:
             cpu_text.set_text(current_data[0])
         else:
             cpu_text.set_text(f"{current_data[0]} | {current_data[1]}")
@@ -1038,7 +1040,6 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
         main_logger.debug("• Display will show render thread time.")
     else:
         main_logger.debug("• Display will show full render time.")
-    
     
     while True:
         data_poller = mainpool.submit(update_data)

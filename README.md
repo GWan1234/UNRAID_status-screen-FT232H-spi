@@ -52,7 +52,9 @@ With that in mind, there is potentially unrealized optimizations that can be don
 - Fault-tolerant with clear log output on what went wrong
     - Includes numerous fallbacks for incorrect settings
 - Designed to run fully inside a Docker container but can also be run outside of an UNRAID context as well
+- Codebase is stable and mature; no significant changes in the foreseeable future
 - Looks neat imho 👍
+  - (note: the layout is not configurable! sorry about that)
 
 ## Hardware Setup and Wiring
 Assuming you actually want to physically replicate this yourself, wire up the components as follows:
@@ -117,6 +119,13 @@ If the Docker is configured correctly, it will execute the `init.sh` script and 
 <br />
 Check the Docker log for script output.
 
+#### Updating to the latest version
+Follow steps 1-4 and step 6 above. Then:
+1. Shutdown the Docker.
+2. Delete `init.sh` and `main.py`.
+3. Upload these same files from the files you extracted from the latest release.
+4. Restart the Docker.
+
 ### Running outside of UNRAID
 If running outside of UNRAID (eg. a Raspberry Pi):
 ```
@@ -159,6 +168,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ```
 
 ## Acknowledgements
+<div>
 <a href="https://discord.gg/haha98"><img src="https://cdn.discordapp.com/emojis/765011373590970418.webp?size=96&quality=lossless" alt="soootrue" width="64" height="64"></a>
 </div>
 ^ Thanks to the fellow tech nerds in here for all the suggestions over the evolution of this project (mainly watching me go crazy adding in feature creep)
