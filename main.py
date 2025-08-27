@@ -53,7 +53,7 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.11.0 --- 2025-06-14"
+VERSION: str = "v.3.11.1 --- 2025-08-27"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 from pathlib import Path
@@ -480,7 +480,12 @@ else:
 
 # Load in Blinka CircuitPython
 try:
-    import board
+    try:
+        import board
+    except AttributeError as e:
+        main_logger.error(f"Caught an AttributeError \'({e})\' when trying to load \'board\' interface.", exc_info=True)
+        main_logger.error("You might need to rebuild the Docker or recreate the virtual Python enviornment.")
+        sys.exit(1)
     import digitalio
     import adafruit_rgb_display.ili9341 as ili9341
     from pyftdi.ftdi import Ftdi

@@ -1,5 +1,9 @@
 UNRAID Status Screen Changelog:
 
+- v.3.11.1 (2025-08-27)
+    - Add logic to handle when the 'board' module is updated and the program fails to load
+        - Only solution so far is to either rebuild the docker or virtual environment
+
 - v.3.11.0 (2025-06-14)
     - Refactoring how the data polling threads are handled in the threadpool
     - Initialization script now waits 3 months to check/update dependencies

@@ -57,9 +57,18 @@ With that in mind, there is potentially unrealized optimizations that can be don
   - (note: the layout is not configurable! sorry about that)
 
 ## Hardware Setup and Wiring
-Assuming you actually want to physically replicate this yourself, wire up the components as follows:
-<div align="center">
-    
+
+### Bill of Materials
+
+
+| Device | Link | Alternative |
+| --- | --- | --- |
+| FT232H Board | [Adafruit](https://www.adafruit.com/product/2264) | N/A |
+| ILI9341 Display | [Amazon](https://www.amazon.com/dp/B0BNQBKFCT) (the one I used) | [SparkFun](https://www.sparkfun.com/color-320x240-touchscreen-3-2-inch-ili9341-controller.html)<br>[Adafruit](https://www.adafruit.com/product/1770) (this has a different layout) |
+| USB-C Cable | You probably already have one | [USB 2.0 Motherboard Header to USB-C Male](https://www.moddiy.com/products/5957/USB-9-Pin-Internal-Motherboard-Female-Header-to-USB-3.1-Type-C-Adaptor.html) |
+
+Then, wire up the components as follows:
+
 | ILI9341 | FT232 |
 | --- | --- |
 | VCC | 5V |
@@ -71,8 +80,7 @@ Assuming you actually want to physically replicate this yourself, wire up the co
 | SLK | D0 |
 | LED | 3V |
 | MISO | D2 |
-    
-</div>
+
 Once cobbled together, connect the FT232 board to an available USB port or header on your computer.
 
 ## Software Setup
