@@ -2,7 +2,7 @@
 {
 # Initialization/bootstrap script for our Python Docker.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.11.1
+# Version = v.3.11.2
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -27,7 +27,7 @@ terminate() {
 	echo -e "${GREEN}>>> Shutdown complete.${NC}"
 	exit 0
 	}
-	
+
 echo -e "\n${ORANGE}>>> Firing up this Docker."
 echo -e "${GREEN}>>> Checking dependencies, let's begin.${NC}"
 
@@ -44,7 +44,7 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 echo -e "${FADE}"
-if [ ! -f "$CHECK_FILE" ]; then 
+if [ ! -f "$CHECK_FILE" ]; then
 	echo "> First run detected, installing needed dependencies.
   This may take some time depending on your internet connection."
 	echo "  Notice: Docker memory usage will be higher for this session."

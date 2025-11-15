@@ -1,4 +1,4 @@
-'''
+"""
 UNRAID system monitoring screen script.
 Powered by Python, matplotlib, and psutil.
 Designed to run completely in Docker, but can also be run elsewhere.
@@ -32,8 +32,8 @@ print("\n\
  ░ ▒  ▒   ░▒ ░ ▒░ ▒  ░▒ ░    ▒  ▒▒░░ ░   ░  ░ ▒  ░\n\
  ▒▒▓▒ ▒ ░ ▒▓ ░▒▓░░▓  ▒▓▒░ ░░▒▒  ▓▒▓░ ░▒  ▒ ░░ ▒░ ░\n\
 ░▒▓▓▓▓▓ ░▓▓▓ ▒▓▓▒░▓▓░▒▓███  by: WeegeeNumbuh1  ███\n")
-'''
-'''
+"""
+"""
     Copyright (C) 2025, WeegeeNumbuh1.
 
     This program is free software: you can redistribute it and/or modify
@@ -48,12 +48,12 @@ print("\n\
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.11.1 --- 2025-08-27"
+VERSION: str = "v.3.11.2 --- 2025-11-15"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 from pathlib import Path
@@ -121,10 +121,10 @@ PLOT_CONFIG: tuple = (
     #'title' : 'Resources',
     'line_config' : (
         {} # a bar graph
-    )
+        )
     }
 )
-BARPLOT_COLORS: list = ['#375e1f','#4a2a7a']
+BARPLOT_COLORS: list = ["#408316","#5b25ac"]
 
 #==| Program setup |==========================================================
 #=============================================================================
@@ -144,24 +144,25 @@ main_logger.info(f"Version: {VERSION}")
 main_logger.info(f"Script started: {STARTED_DATE.replace(microsecond=0)}")
 
 def sigterm_handler(signal, frame):
-    ''' Cleanly exit when this Docker is shut down. '''
+    """ Cleanly exit when this Docker is shut down. """
     mainpool.shutdown(wait=False, cancel_futures=True)
     disp.image(bg_image, IMAGE_ROTATION) # leave a splash screen up when we exit
     end_time = round(time.monotonic() - START_TIME, 3)
     main_logger.info(f"- Exit signal commanded at {datetime.datetime.now()}")
-    main_logger.info(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
+    main_logger.info(f"  Script ran for {timedelta_clean(end_time)} "
+                     f"and sampled {samples} times with {dropped_frames} dropped sample(s).")
     main_logger.info("Main loop stopped. See you next time!")
     sys.exit(0)
 
 def print_stderr(*a) -> None:
-    ''' Wrapper to send a message to stderr. '''
+    """ Wrapper to send a message to stderr. """
     print(*a, file = sys.stderr, flush=True)
 
 def check_settings() -> None:
-    '''
+    """
     Checks if the settings are correct and sets flags or reverts variables to safe fallbacks
     if they're incorrect or invalid.
-    '''
+    """
     global cpu_temp_available, network_interface_set, array_valid, REFRESH_RATE, CPU_TEMP_SENSOR, IMAGE_ROTATION, PLOT_SIZE
     if REFRESH_RATE < 0.5:
         main_logger.warning("Refresh rate set too low. Refresh rate will be set to 0.5 seconds.")
@@ -190,37 +191,34 @@ def check_settings() -> None:
     # probe possible temperature names
     if cpu_temp_available:
         try:
-            test1 = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
-        except:
+            _ = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
+        except Exception:
             main_logger.warning(f"CPU temperature \'{CPU_TEMP_SENSOR}\' not found.")
             # Intel, AMD, then generic names
-            probe_sensor_names = iter(['coretemp', 'k10temp', 'k8temp', 'cpu_thermal', 'cpu_thermal_zone'])
+            probe_sensor_names = ['coretemp', 'k10temp', 'k8temp', 'cpu_thermal', 'cpu_thermal_zone']
             # try until we hit our first success
-            while True:
-                sensor_entry = next(probe_sensor_names, "nothing")
-                if sensor_entry == "nothing":
-                    main_logger.info(">>> Continuing without temperature plot.")
-                    sensor_list = psutil.sensors_temperatures()
-                    main_logger.info("For your reference, the following temperature sensors were found:")
-                    cputemps = []
-                    for name, entries in sensor_list.items():
-                        cputemps.append(name)
-                    main_logger.info(f"{'   '.join(cputemps)}")
-                    cpu_temp_available = False
-                    break
+            for sensor_entry in probe_sensor_names:
                 try:
-                    test1 = psutil.sensors_temperatures()[sensor_entry][0].current
-                    # if successful, continue the rest of this block
+                    _ = psutil.sensors_temperatures()[sensor_entry][0].current
                     main_logger.warning(f"\'{CPU_TEMP_SENSOR}\' was not found but \'{sensor_entry}\' was.")
                     main_logger.warning("Please update the configuration to suppress this message in the future.")
                     CPU_TEMP_SENSOR = sensor_entry
                     break
-                except:
+                except Exception:
                     pass
+            else:
+                main_logger.info(">>> Continuing without temperature plot.")
+                sensor_list = psutil.sensors_temperatures()
+                main_logger.info("For your reference, the following temperature sensors were found:")
+                cputemps = []
+                for name, entries in sensor_list.items():
+                    cputemps.append(name)
+                main_logger.info(f"{'   '.join(cputemps)}")
+                cpu_temp_available = False
 
     try:
-        test2 = psutil.disk_usage(ARRAY_PATH)
-    except:
+        _ = psutil.disk_usage(ARRAY_PATH)
+    except Exception:
         main_logger.warning(f"Array path \'{ARRAY_PATH}\' does not exist. Defaulting to '/'.")
         array_valid = False
 
@@ -228,9 +226,10 @@ def check_settings() -> None:
         network_interface_set = False
     else:
         try:
-            test3 = psutil.net_io_counters(pernic=True)[NETWORK_INTERFACE]
-        except:
-            main_logger.warning(f"Network interface \'{NETWORK_INTERFACE}\' not found. Network readouts may be incorrect.")
+            _ = psutil.net_io_counters(pernic=True)[NETWORK_INTERFACE]
+        except Exception:
+            main_logger.warning(f"Network interface \'{NETWORK_INTERFACE}\' "
+                                "not found. Network readouts may be incorrect.")
             nic_stats = psutil.net_io_counters(pernic=True)
             nic_names = list(nic_stats.keys())
             main_logger.info("For your reference, the following network interfaces were found:")
@@ -248,7 +247,8 @@ def check_settings() -> None:
         cpu_max = round(psutil.cpu_freq().max / 1000, 2)
 
     if cpu_temp_available:
-        main_logger.debug(f"• CPU temp sensor: \'{CPU_TEMP_SENSOR}\' on a ~{cpu_max}GHz CPU with {CORE_COUNT} logical core(s)")
+        main_logger.debug(f"• CPU temp sensor: \'{CPU_TEMP_SENSOR}\' "
+                          f"on a ~{cpu_max}GHz CPU with {CORE_COUNT} logical core(s)")
     else:
         main_logger.debug(f"• CPU has {CORE_COUNT} logical core(s) @ ~{cpu_max}GHz")
 
@@ -256,26 +256,27 @@ def check_settings() -> None:
         main_logger.debug(f"• Array path: \'{ARRAY_PATH}\'")
     if network_interface_set:
         main_logger.debug(f"• Network interface: \'{NETWORK_INTERFACE}\'")
-    
+
     # This whole script is structured around 5 entries. If you want to add or remove stuff, have fun 💥
     if len(PLOT_CONFIG) != 5:
         main_logger.critical(f"There must be 5 entries in the PLOT_CONFIG setting. {len(PLOT_CONFIG)} were found.")
         raise AssertionError("Incorrect amount of entries in configuration.")
 
 def it_broke(type: int) -> None:
-    ''' Our error handler. 1 = thread timeout, any other value is for any unknown error. '''
+    """ Our error handler. 1 = thread timeout, any other value is for any unknown error. """
     disp.image(bg_image, IMAGE_ROTATION)
     mainpool.shutdown(wait=False, cancel_futures=True)
     if type == 1:
         end_time = round(time.monotonic() - START_TIME, 3)
         main_logger.info(f"- Process exit commanded at {datetime.datetime.now()}")
-        main_logger.info(f"  Script ran for {timedelta_clean(end_time)} and sampled {samples} times with {dropped_frames} dropped sample(s).")
+        main_logger.info(f"  Script ran for {timedelta_clean(end_time)} and sampled "
+                         f"{samples} times with {dropped_frames} dropped sample(s).")
         raise ResourceWarning("Script terminated due to system conditions.")
     else:
         raise GeneratorExit("Script terminated due to unhandled error.")
-        
+
 def bytes2human(n, format: str = "%(value).1f%(symbol)s") -> str:
-    '''
+    """
     Convert bytes to a more readable size.
     Pulled from `_common.py` of `psutil` with the symbols edited to better match this script.
 
@@ -283,7 +284,7 @@ def bytes2human(n, format: str = "%(value).1f%(symbol)s") -> str:
     '9.8KiB'
     >>> bytes2human(100001221)
     '95.4MiB'
-    '''
+    """
     symbols = ('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
     prefix = {}
     for i, s in enumerate(symbols[1:]):
@@ -295,8 +296,8 @@ def bytes2human(n, format: str = "%(value).1f%(symbol)s") -> str:
     return format % dict(symbol=symbols[0], value=n)
 
 def get_ip() -> str:
-    ''' Gets us our local IP. Thanks `fatal_error` off of Stack Overflow for this solution.
-    Modifies the global `UNRAID_IP` '''
+    """ Gets us our local IP. Thanks `fatal_error` off of Stack Overflow for this solution.
+    Modifies the global `UNRAID_IP` """
     global UNRAID_IP
     ip_last = UNRAID_IP
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -313,12 +314,12 @@ def get_ip() -> str:
     UNRAID_IP = IP
 
 def timedelta_clean(timeinput: datetime) -> str:
-    ''' Cleans up time deltas without the microseconds. '''
+    """ Cleans up time deltas without the microseconds. """
     delta_time = datetime.timedelta(seconds=timeinput)
     return f"{delta_time}".split(".")[0]
 
 def refresh_rate_limiter(setup_time: float) -> None:
-    ''' Adjusts refresh rate for really slow systems. '''
+    """ Adjusts refresh rate for really slow systems. """
     global REFRESH_RATE, PROFILER_COUNT, PROFILE_DISPLAY_RENDER, timeout_wait
     init_refresh = REFRESH_RATE
     if setup_time >= 0 and setup_time < 10:
@@ -354,16 +355,16 @@ def refresh_rate_limiter(setup_time: float) -> None:
         plot_settings.set_text(f"Refresh: {REFRESH_RATE}s | Plot: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s")
 
 def thread_timer(begin_time: float, end_time: float, thread_id: int) -> None:
-    ''' Collects how long it takes for the render threads to do their thing. '''
+    """ Collects how long it takes for the render threads to do their thing. """
     global current_data
     if thread_id == 0:
         thread_time[0] = round(end_time - begin_time, 4)
         if PROFILE_DISPLAY_RENDER == 0:
-            current_data[-1] = thread_time[0]        
+            current_data[-1] = thread_time[0]
     elif thread_id == 1:
         thread_time[1] = round(end_time - begin_time, 4)
         if PROFILE_DISPLAY_RENDER == 1:
-            current_data[-1] = thread_time[1]        
+            current_data[-1] = thread_time[1]
     else:
         return
 
@@ -393,7 +394,7 @@ try:
     UNRAID_VERSION: str = str(input_list[0]).split('"')[1]
     main_logger.info(f"We're running in Unraid version {UNRAID_VERSION}")
     del input_list, UNRAID_VER_FILE
-except:
+except Exception:
     main_logger.warning("Are we running in UNRAID?")
     UNRAID_VERSION: str = "Unknown"
 
@@ -428,7 +429,7 @@ try:
 except ImportError:
     main_logger.error("Required Python module \'yaml\' could not be loaded and settings file cannot be used.")
     main_logger.info(">>> Please check your Python environment. Using default settings.")
-except:
+except Exception:
     main_logger.warning(f"Unable to load settings file \'{SETTINGS_FILE}\'. Using default settings.")
 
 if DEBUG:
@@ -460,7 +461,7 @@ try:
     import psutil
     # schedule
     import schedule
-except:
+except Exception:
     raise ImportError("Required modules failed to load. Check your Python environment.")
 
 # Get us our core count
@@ -483,13 +484,13 @@ try:
     try:
         import board
     except AttributeError as e:
-        main_logger.error(f"Caught an AttributeError \'({e})\' when trying to load \'board\' interface.", exc_info=True)
-        main_logger.error("You might need to rebuild the Docker or recreate the virtual Python enviornment.")
+        main_logger.exception(f"Caught an AttributeError \'({e})\' when trying to load \'board\' interface.")
+        main_logger.critical("You might need to rebuild the Docker or recreate the virtual Python enviornment!")
         sys.exit(1)
     import digitalio
     import adafruit_rgb_display.ili9341 as ili9341
     from pyftdi.ftdi import Ftdi
-except:
+except Exception:
     raise ImportError("Cannot load in required interfaces. Possible causes:\n\
              - FT232H board not detected or attached.\n\
              - Insufficient permission to access USB devices. Try running with elevated permissions.\n\
@@ -498,16 +499,16 @@ except:
 # print if we have the FT232 board connected
 try:
     #Ftdi().open_from_url('ftdi:///?') # this will force a SystemExit, don't use
-    ''' Ftdi.show_devices() prints directly to stdout, bypassing our logger.
+    """ Ftdi.show_devices() prints directly to stdout, bypassing our logger.
     We temporarily capture its output, store the result, and parse it to print
-    through our logger. '''
+    through our logger. """
     with redirect_stdout(StringIO()) as ftdi_devices:
         Ftdi.show_devices()
     # split by newlines, remove any lines with nothing in them
     ftdi_output = list(filter(None, ftdi_devices.getvalue().split("\n")))
     for entry in range(len(ftdi_output)):
         main_logger.info(ftdi_output[entry])
-except:
+except Exception:
     it_broke(2)
 
 # Setup display
@@ -523,14 +524,14 @@ if SPLASH_SCREEN == "none":
 else:
     try:
         bg_image = Image.open(SPLASH_SCREEN).convert('RGB')
-    except:
-        bg_image = Image.new('RGB', (disp.width, disp.height))    
+    except Exception:
+        bg_image = Image.new('RGB', (disp.width, disp.height))
         main_logger.warning(f"Unable to load splash screen \'{SPLASH_SCREEN}\'. Check your configuration.")
 disp.image(bg_image, IMAGE_ROTATION)
 
 # Convert desired plot duration to plot size
 HIST_SIZE = int((PLOT_SIZE * 60) // REFRESH_RATE) + 1
-''' Our plot length '''
+""" Our plot length """
 if HIST_SIZE > 501:
     HIST_SIZE = 501
     main_logger.warning(f"Desired plot history ({PLOT_SIZE}min) cannot fit into plot. Data will be truncated.")
@@ -541,71 +542,71 @@ matplotlib.use('Agg', force=True)
 
 main_logger.debug(f"• Using: matplotlib {matplotlib.__version__}, {matplotlib.get_backend()} backend")
 main_logger.debug(f"         psutil {psutil.version_info} | numpy {np.__version__} | PIL {Image.__version__}")
-    
+
 # Start our thread pool
 mainpool = CF.ThreadPoolExecutor(max_workers=7)
-'''
+"""
 We expect to only run the following:
 - update_data() ← one thread
     - 4 workers
 - update_plot() ← our plot generator
 - plot_renderer() ← our display renderer
 - Σ = 7
-'''
+"""
 
 # Get info of our current process
 this_process = psutil.Process()
 this_process_cpu = this_process.cpu_percent(interval=None)
 try:
     main_logger.debug(f"• Running on CPU core {this_process.cpu_num()} with {this_process.num_threads()} threads")
-except:
+except Exception:
     main_logger.debug(f"• Running with {this_process.num_threads()} threads")
 
 PROFILING: bool = True
-''' Enable or disable the thread timeout profiler, HIGHLY recommended to be left as True '''
+""" Enable or disable the thread timeout profiler, HIGHLY recommended to be left as True """
 PROFILER_COUNT: int = 0
-''' 
+"""
 How many samples for our profiler. Don't set too high,
 we need to get our stats for our thread timeouts sooner than later.
 The profiler will run PROFILER_COUNT * REFRESH_RATE seconds.
-'''
+"""
 CPU_AFFECT_RATIO: int = 100
-''' 
+"""
 Take our current CPU load (out of 100) and divide by this number.
 higher value = less effect, lower = more effect
 ex: 100%/200 = 0.5, 100%/100 = 1, 100%/50 = 2, 100%/25 = 4, etc.
-'''
+"""
 if PROFILING:
-    PROFILER_COUNT = 150 
+    PROFILER_COUNT = 150
     CPU_AFFECT_RATIO = 20
 
 time_array: list = [[],[]]
-''' 
+"""
 [
     [] → plot gen times
     [] → render times
 ]
-'''
+"""
 # initialize where we can measure our thread times
 thread_time: list = [0,0]
-''' [plot gen, render] '''
+""" [plot gen, render] """
 
 PROFILE_DISPLAY_RENDER: int = 2
-''' 
+"""
 Choose which stat to display on screen if DEBUG is enabled.
 - 0 = measure wall time to generate plot
 - 1 = measure wall time to render plot buffer to display
 - anything else = measure both
-'''
+"""
 
 REFERENCE_RENDER_SPEED: int = 125
-'''
+"""
 This is our reference render speed (ms) based on a Ryzen 7 5700G system (my UNRAID hardware as of 2024).
 With `matplotlib` < 3.9, this used to be 140 ms, but `3.10.0` they improved the rendering speed.
 Fun fact, the slowest system this script was tested on was a Broadcom BCM2835 (Raspberry Pi Zero) at 100% CPU load.
 It took anywhere between 4-6 seconds to do a single render.
 On the opposite end was an overclocked Threadripper 7970X at 5.5GHz and it took <100ms to complete.
-'''
+"""
 
 # Setup arrays we can put latest sensor info into rather than parsing our y_data list every time
 current_data: list = []
@@ -639,61 +640,83 @@ plt.rcParams.update({'font.size': 7})
 # Set up text objects we can update
 bbox_setting = dict(facecolor='black', edgecolor='None', pad=0.3, alpha=0.25)
 if DEBUG:
-    unraid_ver_text = ax[4].annotate(f"Unraid version {UNRAID_VERSION}",
-                                     [0, -0.2], xycoords='axes fraction',
-                                     verticalalignment='top',
-                                     horizontalalignment='left',
-                                     alpha=0.5, fontsize=6)    
-    plot_settings = ax[4].annotate(f"Refresh: {REFRESH_RATE}s | Plot: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s",
-                                   [0, -0.5], xycoords='axes fraction',
-                                   verticalalignment='top',
-                                   horizontalalignment='left',
-                                   alpha=0.5, fontsize=6)
-    debug_text = ax[4].annotate('', [1, -0.5], xycoords='axes fraction', 
-                                verticalalignment='top',
-                                horizontalalignment='right',
-                                family='monospace',fontsize=6, alpha=0.5)
-    frame_number_text = ax[4].annotate('', [1, -0.25], xycoords='axes fraction', 
-                                       verticalalignment='top',
-                                       horizontalalignment='right',
-                                       family='monospace', fontsize=5, alpha=0.5)
-host_text = ax[0].annotate(f"{UNRAID_HOSTNAME} {UNRAID_IP}",
-                           [0.5, 1], xycoords='axes fraction',
-                           verticalalignment='center',
-                           horizontalalignment='center',
-                           family='monospace', fontsize=5, alpha=0.5)
-cpu_text = ax[0].annotate('', [0.5, 0.3], xycoords='axes fraction', 
-                          verticalalignment='center',
-                          horizontalalignment='center',
-                          fontweight='black',
-                          bbox=bbox_setting)
-uptime_text = ax[2].annotate('', [0.5, 1.1], xycoords='axes fraction', 
-                             verticalalignment='top',
-                             horizontalalignment='center',
-                             fontvariant='small-caps')
-disk_text = ax[2].annotate('', [0.5, 0.3], xycoords='axes fraction', 
-                           verticalalignment='center',
-                           horizontalalignment='center',
-                           fontweight='black',
-                           bbox=bbox_setting)
-network_text = ax[3].annotate('', [0.5, 0.3], xycoords='axes fraction',
-                              verticalalignment='center',
-                              horizontalalignment='center',
-                              fontweight='black',
-                              bbox=bbox_setting)
-memory_text = ax[4].annotate('', [0.5, 0.725], xycoords='axes fraction', 
-                             verticalalignment='center',
-                             horizontalalignment='center',
-                             fontweight='black')
-storage_text = ax[4].annotate('', [0.5, 0.225], xycoords='axes fraction', 
-                              verticalalignment='center',
-                              horizontalalignment='center',
-                              fontweight='black')
+    unraid_ver_text = ax[4].annotate(
+        f"Unraid version {UNRAID_VERSION}",
+        [0, -0.2], xycoords='axes fraction',
+        verticalalignment='top',
+        horizontalalignment='left',
+        alpha=0.5, fontsize=6
+    )
+    plot_settings = ax[4].annotate(
+        f"Refresh: {REFRESH_RATE}s | Plot: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s",
+        [0, -0.5], xycoords='axes fraction',
+        verticalalignment='top',
+        horizontalalignment='left',
+        alpha=0.5, fontsize=6
+    )
+    debug_text = ax[4].annotate(
+        '', [1, -0.5], xycoords='axes fraction',
+        verticalalignment='top',
+        horizontalalignment='right',
+        family='monospace',fontsize=6, alpha=0.5
+    )
+    frame_number_text = ax[4].annotate(
+        '', [1, -0.25], xycoords='axes fraction',
+        verticalalignment='top',
+        horizontalalignment='right',
+        family='monospace', fontsize=5, alpha=0.5
+    )
+host_text = ax[0].annotate(
+    f"{UNRAID_HOSTNAME} {UNRAID_IP}",
+    [0.5, 1], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    family='monospace', fontsize=5, alpha=0.5
+)
+cpu_text = ax[0].annotate(
+    '', [0.5, 0.3], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    fontweight='black',
+    bbox=bbox_setting
+)
+uptime_text = ax[2].annotate(
+    '', [0.5, 1.1], xycoords='axes fraction',
+    verticalalignment='top',
+    horizontalalignment='center',
+    fontvariant='small-caps'
+)
+disk_text = ax[2].annotate(
+    '', [0.5, 0.3], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    fontweight='black',
+    bbox=bbox_setting
+)
+network_text = ax[3].annotate(
+    '', [0.5, 0.3], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    fontweight='black',
+    bbox=bbox_setting
+)
+memory_text = ax[4].annotate(
+    '', [0.5, 0.725], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    fontweight='black'
+)
+storage_text = ax[4].annotate(
+    '', [0.5, 0.225], xycoords='axes fraction',
+    verticalalignment='center',
+    horizontalalignment='center',
+    fontweight='black'
+)
 
 def annotate_axes(ax, text, fontsize: float = 10) -> None:
-    ''' Puts text in the center of the plots '''
+    """ Puts text in the center of the plots """
     ax.text(0.5, 0.5, text, transform=ax.transAxes,
-            ha='center', va='center', fontsize=fontsize, 
+            ha='center', va='center', fontsize=fontsize,
             fontstyle='italic', fontweight='normal', alpha=0.4)
 
 try:
@@ -716,9 +739,9 @@ try:
         if plot == 4: # this is our barplot
             a.tick_params(bottom = False, left=False)
         # turn off all spines
-        a.spines['top'].set_visible(False)  
-        a.spines['bottom'].set_visible(False)  
-        a.spines['right'].set_visible(False)  
+        a.spines['top'].set_visible(False)
+        a.spines['bottom'].set_visible(False)
+        a.spines['right'].set_visible(False)
         a.spines['left'].set_visible(False)
         # limit and invert x time axis
         if plot == 4: # we don't need to set the x-limits here
@@ -746,16 +769,16 @@ try:
             lines.append(line)
         plot_lines.append(lines)
         # annotate_axes(ax[plot],AX_NAME[plot])
-        
+
     # Make plot 1 a heatmap
     heatmap = ax[1].imshow(np.matrix(np.zeros(CORE_COUNT)),
                            cmap='gist_heat', vmin=0, vmax=100, aspect='auto', alpha=0.5)
 
     # Make plot 4 a horizontal bar graph
     barplot = ax[4].barh([1, 2], [0, 0], color=BARPLOT_COLORS)
-    ax[4].set_xlim(right=100) 
-    ax[4].set_yticks([1, 2],["Array", "Memory"])        
-except:
+    ax[4].set_xlim(right=100)
+    ax[4].set_yticks([1, 2],["Array", "Memory"])
+except Exception:
     raise Exception("Failed to create plot. This may be caused by incorrect values in \'PLOT_CONFIG\'")
 
 main_logger.debug(f"• Plot length: {HIST_SIZE} samples")
@@ -764,19 +787,19 @@ main_logger.debug(f"• Plot length: {HIST_SIZE} samples")
 #=============================================================================
 
 def update_data() -> None:
-    '''
+    """
     Generates data for our plot.
     Sends workers to run in our thread pool, waits for them to finish,
     then returns. The workers sleep for REFRESH_RATE then append to y_data
     and current_data[].
     General form is:
            y_data[plot][line].append(new_data_point)
-    '''
+    """
 
     def cpu_data_load() -> None:
         cpu_percs = psutil.cpu_percent(interval=REFRESH_RATE, percpu=False)
         y_data[0][0].append(cpu_percs)
-        cpu_freq = psutil.cpu_freq()         
+        cpu_freq = psutil.cpu_freq()
         cpu_f_ghz = cpu_freq.current / 1000
         current_data[0] = f"{cpu_percs}% {cpu_f_ghz:.2f} GHz"
         if not cpu_temp_available:
@@ -786,11 +809,12 @@ def update_data() -> None:
             cpu_temp = psutil.sensors_temperatures()[CPU_TEMP_SENSOR][0].current
             y_data[0][1].append(cpu_temp)
             current_data[1] = f"{cpu_temp:.1f}°C"
-        
+
     def cpu_data_core() -> None:
         global cpu_percs_cores
         cpu_percs_cores_tmp = psutil.cpu_percent(interval=REFRESH_RATE, percpu=True)
-        cpu_percs_cores = cpu_percs_cores_tmp # write to cpu_percs_cores after blocking rather than blocking cpu_percs_cores
+        # write to cpu_percs_cores after blocking rather than blocking cpu_percs_cores
+        cpu_percs_cores = cpu_percs_cores_tmp
         y_data[1][0].append(1) # we want a max y-value of 1 for this plot
 
     def disk_data() -> None:
@@ -827,11 +851,11 @@ def update_data() -> None:
         else:
             current_data[4] = "⚠️ !!! NETWORK"
             current_data[5] = "DOWN !!! ⚠️"
-    
-    '''
+
+    """
     This was the old way of threading; this was much slower
     Kept here for notoriety.
-    '''
+    """
     # t1 = threading.Thread(target=cpu_data_load, name='CPU Poller', daemon=True)
     # t2 = threading.Thread(target=cpu_data_core, name='CPU Core Poller', daemon=True)
     # t3 = threading.Thread(target=disk_data, name='Disk Poller', daemon=True)
@@ -839,10 +863,10 @@ def update_data() -> None:
     # t1.start() ; t2.start() ; t3.start() ; t4.start()
     # t1.join() ; t2.join() ; t3.join() ; t4.join()
 
-    '''
+    """
     Gather stats over REFRESH_RATE instead of waiting for each one sequentially
     and use the thread pool
-    '''
+    """
     futures = []
     futures.append(mainpool.submit(cpu_data_load))
     futures.append(mainpool.submit(cpu_data_core))
@@ -865,13 +889,13 @@ def update_data() -> None:
         return
 
 def update_plot() -> None:
-    '''
+    """
     Read the last polled data generated by update_data(), update all corresponding elements
     in our plot, then generate an updated plot buffer. This will run as soon as update_data() is started
-    so that while the workers spawned by update_data() are sleeping we can focus on generating the plot. 
+    so that while the workers spawned by update_data() are sleeping we can focus on generating the plot.
     This has the effect of the workers being able to monitor the load this thread imposes.
     - thread_id = 0
-    '''
+    """
     plot_start = time.perf_counter()
     # gather system stats
     uptime = f"Uptime: {timedelta_clean(time.monotonic())}"
@@ -906,11 +930,11 @@ def update_plot() -> None:
         # update our barplot
         barplot[0].set_width(array_use.percent)
         barplot[1].set_width(memory_use.percent)
-        ''' original setup; this WILL cause a memory leak '''
+        """ original setup; this WILL cause a memory leak """
         # ax[1].pcolormesh([cpu_percs_cores], cmap='hot', vmin=0, vmax=100)
         # ax[4].barh(1, array_use.percent, facecolor='#375e1f')
         # ax[4].barh(2, memory_use.percent, facecolor='#4a2a7a')
-        
+
         # update text in plots with last polled data
         if current_data[1] is None:
             cpu_text.set_text(current_data[0])
@@ -930,18 +954,19 @@ def update_plot() -> None:
                     debug_text.set_text(f"Last plot gen: {(current_data[-1] * 1000):.1f}ms")
                 else:
                     debug_text.set_text(f"Last render: {(current_data[-1] * 1000):.1f}ms")
-            frame_number_text.set_text(f"{samples},{dropped_frames} | {timedelta_clean(time.monotonic()-START_TIME)}")
-            
-    ''' Draw the plots. '''
+            frame_number_text.set_text(f"{samples},{dropped_frames} | "
+                                       f"{timedelta_clean(time.monotonic()-START_TIME)}")
+
+    """ Draw the plots. """
     canvas = plt.get_current_fig_manager().canvas
     canvas.draw()
     thread_timer(plot_start, time.perf_counter(), 0)
 
 def plot_renderer() -> None:
-    '''
+    """
     Renders the plot buffer to display. This is usually the most CPU intense thread on faster systems.
-    - thread_id = 1 
-    '''
+    - thread_id = 1
+    """
     render_start = time.perf_counter()
     canvas = plt.get_current_fig_manager().canvas
     # option 1
@@ -952,11 +977,11 @@ def plot_renderer() -> None:
     thread_timer(render_start, time.perf_counter(), 1)
 
 def plot_profiler(samples: int, sample_size: int):
-    '''
+    """
     Profiles how long it takes to actually render the image on your specific hardware
     then adjusts the thread timeouts so we can set better limits. This runs during the first
-    PROFILER_COUNT amount of samples then returns baseline values to be used in further calculations.
-    '''
+    `PROFILER_COUNT` amount of samples then returns baseline values to be used in further calculations.
+    """
     global time_array
     if samples == 0:
         return
@@ -974,13 +999,15 @@ def plot_profiler(samples: int, sample_size: int):
         render_full = np.around((avg_render[0] + avg_render[1]) * 1000, 1)
         # this is our new emperically stat-driven baseline, in seconds
         real_timeout = np.around(((avg_render + (render_sd / 500)) * 2), 4)
-        main_logger.info(f"Profiler stats of {sample_size} samples ({REFRESH_RATE * PROFILER_COUNT}s | \
-actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
-        main_logger.info(f"   Plot generation:     avg: {round(avg_render[0] * 1000, 1)}ms \
-| max/min/SD: {render_max[0]}/{render_min[0]}/{render_sd[0]}ms")
-        main_logger.info(f"   Screen render:       avg: {round(avg_render[1] * 1000, 1)}ms \
-| max/min/SD: {render_max[1]}/{render_min[1]}/{render_sd[1]}ms")
-        main_logger.info(f"   Full render average: {render_full}ms ({round((REFERENCE_RENDER_SPEED/render_full) * 100, 1)}% as fast as baseline)")
+        main_logger.info(f"Profiler stats of {sample_size} samples ({REFRESH_RATE * PROFILER_COUNT}s | "
+                         f"actual: {round((time.monotonic() - START_TIME) - init_time, 2)}s):")
+        main_logger.info(f"   Plot generation:     avg: {round(avg_render[0] * 1000, 1)}ms "
+                         f"| max/min/SD: {render_max[0]}/{render_min[0]}/{render_sd[0]}ms")
+        main_logger.info(f"   Screen render:       avg: {round(avg_render[1] * 1000, 1)}ms "
+                         f"| max/min/SD: {render_max[1]}/{render_min[1]}/{render_sd[1]}ms")
+        main_logger.info(f"   Full render average: {render_full}ms "
+                         f"({round((REFERENCE_RENDER_SPEED/render_full) * 100, 1)}%"
+                          " as fast as baseline)")
         return real_timeout
     elif samples > sample_size: # in case we use this past the polling amount
         return
@@ -1000,15 +1027,16 @@ def daily_stats() -> None:
     current_memory_usage = psutil.Process().memory_info().rss
     this_process_cpu = this_process.cpu_percent(interval=None)
     print()
-    main_logger.info(f"ℹ️ Periodic stat update @ {samples} samples \
-({timedelta_clean(time.monotonic()-START_TIME)}):")
-    main_logger.info(f"├ {dropped_frames} dropped sample(s) | \
-{sample_actual_time}ms avg time/sample")
-    main_logger.info(f"└ Avg CPU: {this_process_cpu}% ({round(this_process_cpu / CORE_COUNT, 3)}% overall) | \
-Current memory use: {bytes2human(current_memory_usage)}")
+    main_logger.info(f"ℹ️ Periodic stat update @ {samples} samples "
+                     f"({timedelta_clean(time.monotonic()-START_TIME)}):")
+    main_logger.info(f"├ {dropped_frames} dropped sample(s) | "
+                     f"{sample_actual_time}ms avg time/sample")
+    main_logger.info(f"└ Avg CPU: {this_process_cpu}% "
+                     f"({round(this_process_cpu / CORE_COUNT, 3)}% overall) | "
+                     f"Current memory use: {bytes2human(current_memory_usage)}")
 
 def main() -> None:
-    ''' Loop until Docker shuts down or something breaks. '''
+    """ Loop until Docker shuts down or something breaks. """
     global samples, dropped_frames, timeout_wait, init_time
     init_gc: int = gc.collect()
     main_logger.debug(f"• Initialization cleanup: freed {init_gc} object(s).")
@@ -1016,8 +1044,10 @@ def main() -> None:
     init_time = round(time.monotonic() - START_TIME, 3)
     main_logger.info(f"Setup took {init_time} seconds.")
     refresh_rate_limiter(abs(init_time))
-    main_logger.info(f"--- Monitoring started. Refresh rate: {REFRESH_RATE} second(s) | \
-Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (HIST_SIZE - 1) / 60, 2)}min) ---")
+    main_logger.info("--- Monitoring started. "
+                     f"Refresh rate: {REFRESH_RATE} second(s) | "
+                     f"Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s "
+                     f"({round(REFRESH_RATE * (HIST_SIZE - 1) / 60, 2)}min) ---")
     # register handler for SIGTERM
     signal.signal(signal.SIGTERM, sigterm_handler)
     # our periodic threads
@@ -1028,10 +1058,10 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
 
     update_data() # get initial stats on startup
 
-    current_timeout = timeout_wait 
-    ''' thread timeout adjusted per loop, initialized to timeout_wait, (seconds) '''
-    baseline_timeout = timeout_wait 
-    ''' thread timeout after being set by plot_profiler(), initialized to timeout_wait (seconds) '''
+    current_timeout = timeout_wait
+    """ thread timeout adjusted per loop, initialized to timeout_wait, (seconds) """
+    baseline_timeout = timeout_wait
+    """ thread timeout after being set by plot_profiler(), initialized to timeout_wait (seconds) """
     timeout_adjust = []
 
     if REFRESH_RATE < 1:
@@ -1045,7 +1075,7 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
         main_logger.debug("• Display will show render thread time.")
     else:
         main_logger.debug("• Display will show full render time.")
-    
+
     while True:
         data_poller = mainpool.submit(update_data)
         plotter = mainpool.submit(update_plot)
@@ -1062,11 +1092,16 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
                 main_logger.warning(f"• Thread timeout #{dropped_frames}. Skipping next refresh.")
             if (dropped_frames % 10) == 0:
                 # bump up baseline timeout values to help reduce timeouts
-                baseline_timeout = [round(baseline_timeout[0] * 1.25, 4), round(baseline_timeout[1] * 1.25, 4)]
-                timeout_wait = [round(timeout_wait[0] * 1.25, 4), round(timeout_wait[1] * 1.25, 4)]
-                main_logger.warning(f"Numerous timeouts ({dropped_frames}) detected. Adjusting internal runtime to compensate.")
+                baseline_timeout = [round(baseline_timeout[0] * 1.25, 4),
+                                    round(baseline_timeout[1] * 1.25, 4)]
+                timeout_wait = [round(timeout_wait[0] * 1.25, 4),
+                                round(timeout_wait[1] * 1.25, 4)]
+                main_logger.warning(f"Numerous timeouts ({dropped_frames}) detected. "
+                                    "Adjusting internal runtime to compensate.")
                 if DEBUG:
-                    main_logger.debug(f"• Updated baseline timeouts: {round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms")
+                    main_logger.debug("• Updated baseline timeouts: "
+                                      f"{round(baseline_timeout[0] * 1000, 4)}ms, "
+                                      f"{round(baseline_timeout[1] * 1000, 4)}ms")
             time.sleep(REFRESH_RATE)
             if dropped_frames > 40: # bail out
                 main_logger.critical("ERROR: Maximum timeouts exceeded.")
@@ -1075,12 +1110,12 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
 
         except SystemExit:
             break
-        except:
+        except Exception:
             it_broke(2)
         else:
             if PROFILE_DISPLAY_RENDER != 0 and PROFILE_DISPLAY_RENDER != 1:
                 current_data[-1] = np.sum(thread_time)
-        
+
         if PROFILING: # adjusts both baseline_timeout and current_timeout when plot_profiler() is done
             if samples > PROFILER_COUNT:
                 # dynamically adjust timeout based on CPU load
@@ -1094,14 +1129,17 @@ Plot range: {round(REFRESH_RATE * (HIST_SIZE - 1),1)}s ({round(REFRESH_RATE * (H
                 baseline_timeout = plot_profiler(samples, PROFILER_COUNT)
                 current_memory_usage = psutil.Process().memory_info().rss
                 this_process_cpu = this_process.cpu_percent(interval=None)
-                main_logger.info(f"   CPU & memory usage: {this_process_cpu}% \
-({round(this_process_cpu / CORE_COUNT, 3)}% overall CPU) | {bytes2human(current_memory_usage)}")
+                main_logger.info(f"   CPU & memory usage: {this_process_cpu}% "
+                                 f"({round(this_process_cpu / CORE_COUNT, 3)}% overall CPU) "
+                                 f"| {bytes2human(current_memory_usage)}")
                 if DEBUG:
-                    main_logger.debug(f"• Got new baseline timeouts: \
-{round(baseline_timeout[0] * 1000, 4)}ms, {round(baseline_timeout[1] * 1000, 4)}ms (was {timeout_wait[0]}s)")
-            else: 
+                    main_logger.debug(f"• Got new baseline timeouts: "
+                                      f"{round(baseline_timeout[0] * 1000, 4)}ms, "
+                                      f"{round(baseline_timeout[1] * 1000, 4)}ms "
+                                      f"(was {timeout_wait[0]}s)")
+            else:
                 pass
-                
+
         samples +=1
 
 # finally enter main loop

@@ -2,7 +2,7 @@
 {
 # Initialization/bootstrap script for our monitoring script.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.10.1
+# Version = v.3.11.2
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
@@ -27,7 +27,7 @@ terminate() {
 	echo -e "${GREEN}>>> Shutdown complete.${NC}"
 	exit 0
 	}
-	
+
 if [ `id -u` -ne 0 ]; then
     echo "Please run as root."
     exit 1
@@ -52,7 +52,7 @@ if [ ! -f "${BASEDIR}/main.py" ]; then
 fi
 echo -e "${FADE}"
 if [ ! -f "$CHECK_FILE" ];
-then 
+then
 	echo "> First run detected, installing needed dependencies.
   This may take some time depending on your internet connection."
 	VERB_TEXT='Installing: '
@@ -76,7 +76,7 @@ if [ ! -f "$CHECK_FILE" ] && [ $INTERNET_STAT -eq 1 ]; then
 fi
 
 if [ ! -f "$CHECK_FILE" ];
-then 
+then
     echo ">> Updating package lists..."
 	apt-get update >/dev/null
 	dpkg --configure -a >/dev/null
@@ -92,7 +92,7 @@ then
 	echo "export LC_ALL=en_US.UTF-8" >> ~/.bashrc
 	echo "export LANG=en_US.UTF-8" >> ~/.bashrc
 	echo "export LANGUAGE=en_US.UTF-8" >> ~/.bashrc
-	
+
 fi
 #apt-get install -y python-venv >/dev/null
 if [ ! -d "$VENVPATH" ];
@@ -109,7 +109,7 @@ ${VENVPATH}/bin/python3 -VV
 CHECKMARK='\e[1F\e[30C✅\n' # move cursor up to the beginning one line up then move 30 spaces right
 # install dependencies
 if [ ! -f "$CHECK_FILE" ];
-then 
+then
 	echo "> Packages check:"
 	echo -e "${VERB_TEXT}pip"
 	${VENVPATH}/bin/python3 -m pip install --upgrade pip >/dev/null
@@ -135,7 +135,7 @@ then
 		echo -e "${CHECKMARK}ℹ️ Profiling flag detected\n -> ${VERB_TEXT}scalene"
 		pip install --upgrade scalene >/dev/null
 	fi
-    echo -e "${CHECKMARK}░░░▒▒▓▓ Completed ▓▓▒▒░░░\n"  
+    echo -e "${CHECKMARK}░░░▒▒▓▓ Completed ▓▓▒▒░░░\n"
 fi
 #echo "> List of installed Python packages:"
 #pip list # for debug

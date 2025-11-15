@@ -4,28 +4,26 @@
 # IMPORTANT: Don't remove or rename root-level keys!
 ---
 DEBUG: true
-# If True, render the amount of time it took to render the last frame in the plot itself.
-# Also outputs more info in the log. Personally, I'd leave this set to true.
+# If true, render the amount of time it took to render the last frame in the plot itself.
+# Also outputs more info in the log.
 
 REFRESH_RATE: 3
 # (in seconds)
-# Don't set REFRESH_RATE too low - we don't want to waste too much CPU.
-# Testing has shown it takes roughly 100 - 500 milliseconds to render (on any x86_64 system, v.3.x of this script)
-# the entire plot and send it to the display; if REFRESH_RATE is too low then
-# we are limited to how fast the render threads can complete.
-#   REFRESH_RATE should be >= 0.5
+# Don't set REFRESH_RATE too low - you don't want to waste too much CPU just rendering to the display.
+# REFRESH_RATE should be >= 0.5
 
 PLOT_SIZE: 5
 # (in minutes)
 # How long to keep graph history.
 
 ARRAY_PATH: /rootfs/mnt/user0
-# /rootfs/mnt/user0 is the main Unraid array inside this Docker.
+# /rootfs/mnt/user0 is the main Unraid array when inside the Docker.
 # If you changed this, the directory should be /rootfs/[path_to_your_array].
 
 CPU_TEMP_SENSOR: k10temp
 # Check the output of `sensors` on your system or look at the log output of the script.
 # Then, update with the correct sensor.
+# For Intel machines, use 'coretemp' and for AMD machines, use 'k10temp'
 
 NETWORK_INTERFACE: bond0
 # This is the network interface you want to monitor in Unraid.
@@ -46,8 +44,8 @@ IMAGE_ROTATION: 180
 # Rotate the screen if needed. Valid values are 0, 90, 180, 270
 
 BARPLOT_COLORS:
-    - '#375e1f'
-    - '#4a2a7a'
+    - '#408316'
+    - '#5b25ac'
 # Colors for our bar chart (plot 5), in hexadecimal as a string.
 
 PLOT_CONFIG:
@@ -93,7 +91,7 @@ PLOT_CONFIG:
       title: N e t w o r k
     # Plot 5 (Memory/Array bar graphs)
     - line_config: {} # needed to plot
-    
+
 # Valid plot properties are:
 #   - title = name your subplot
 #   - ylim (min, max) = y-axis limits

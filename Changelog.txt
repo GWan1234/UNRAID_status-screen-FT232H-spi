@@ -1,5 +1,10 @@
 UNRAID Status Screen Changelog:
 
+- v.3.11.2 (2025-11-15)
+    - Numerous code cleanups
+    - Refactor the CPU temp sensor detection process
+    - Change default color of storage and memory bars slightly
+
 - v.3.11.1 (2025-08-27)
     - Add logic to handle when the 'board' module is updated and the program fails to load
         - Only solution so far is to either rebuild the docker or virtual environment
@@ -12,7 +17,7 @@ UNRAID Status Screen Changelog:
 - v.3.10.1 (2025-04-10)
     - Fixes for the portable init script
     - Update documentation and Unraid Docker template xml file
-    
+
 - v.3.10.0 (2025-04-07)
     - Switch to using logging (also inspired by FlightGazer)
     - Text output tweaks
@@ -32,7 +37,7 @@ UNRAID Status Screen Changelog:
 - v.3.8.3 (2024-12-09)
     - Changed calculation timings to be more accurate
     - Overhauled changelog to make it more readable
-    
+
 - v.3.8.2 (2024-09-01)
     - NEW: splash screen no longer needs an absolute path and script defaults to looking in working directory
     - network setting now has new option for monitoring all interfaces (aimed at non UNRAID users)
@@ -72,7 +77,7 @@ UNRAID Status Screen Changelog:
 
 - v.3.7 (2024-05-31)
     - This script can now run on other systems that aren't UNRAID, sorta. All thanks to the following init.sh changes:
-        - NEW: "portable" version of init.sh that sets up a virtual python environment if run outside of Docker    
+        - NEW: "portable" version of init.sh that sets up a virtual python environment if run outside of Docker
         - no more hard-coded locations; init.sh will execute main.py if it's in the same directory
         - environment variables now baked into init.d
         - init.sh now checks for internet when doing setup or package checks and handles no connections accordingly
