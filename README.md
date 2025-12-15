@@ -21,7 +21,7 @@ The screen (an [ILI9341](http://www.lcdwiki.com/2.8inch_SPI_Module_ILI9341_SKU:M
 The project has undergone significant changes that have not been tracked via `git` but the end-goal has been making the main script highly fault-tolerant and passably performant under the constraints of a high-level language interacting with low-level hardware.
 
 > [!NOTE]
-> This project additionally is the author's first foray into Python programming; prior to this project I did not have any Python experience whatsoever.
+> This project additionally is the [author](https://github.com/WeegeeNumbuh1)'s first foray into Python programming; prior to this project I (WeegeeNumbuh1) did not have any Python experience whatsoever.
 With that in mind, there is potentially unrealized optimizations that can be done, but alas, as this project stands, it should work *good enough*.
 
 ### What it looks like:
@@ -145,7 +145,6 @@ The script will create its own virtual Python environment and do what is needed 
 <details><summary>For Windows users:</summary>
 
 No support. Likely will not run.<br>
-[`UNRAID-screen.py`](./test/UNRAID-screen.py) will work, but assumes you're using VSCode + Juptyer. Also YMMV. You've been warned.
 </details>
 
 ### Settings

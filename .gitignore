@@ -1,1 +1,7 @@
-# README.md
+test
+*test*
+*.7z
+**/__pycache__
+.vscode
+*.log
+old

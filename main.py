@@ -34,7 +34,7 @@ print("\n\
 ░▒▓▓▓▓▓ ░▓▓▓ ▒▓▓▒░▓▓░▒▓███  by: WeegeeNumbuh1  ███\n")
 """
 """
-    Copyright (C) 2025, WeegeeNumbuh1.
+    Copyright (C) 2026, WeegeeNumbuh1.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ import time
 START_TIME: float = time.monotonic() # start timing this script
 import datetime
 STARTED_DATE: datetime = datetime.datetime.now()
-VERSION: str = "v.3.11.2 --- 2025-11-15"
+VERSION: str = "v.3.11.3 --- 2025-12-15"
 import os
 os.environ["PYTHONUNBUFFERED"] = "1"
 from pathlib import Path
@@ -491,10 +491,12 @@ try:
     import adafruit_rgb_display.ili9341 as ili9341
     from pyftdi.ftdi import Ftdi
 except Exception:
-    raise ImportError("Cannot load in required interfaces. Possible causes:\n\
-             - FT232H board not detected or attached.\n\
-             - Insufficient permission to access USB devices. Try running with elevated permissions.\n\
-             - The dependencies may not have been set up correctly.")
+    raise ImportError(
+        "Cannot load in required interfaces. Possible causes:\n"
+        " - FT232H board not detected or attached.\n"
+        " - Insufficient permission to access USB devices. Try running with elevated permissions.\n"
+        " - The dependencies may not have been set up correctly."
+    )
 
 # print if we have the FT232 board connected
 try:
@@ -558,7 +560,8 @@ We expect to only run the following:
 this_process = psutil.Process()
 this_process_cpu = this_process.cpu_percent(interval=None)
 try:
-    main_logger.debug(f"• Running on CPU core {this_process.cpu_num()} with {this_process.num_threads()} threads")
+    main_logger.debug(f"• Running on CPU core {this_process.cpu_num()} "
+                      f"with {this_process.num_threads()} threads")
 except Exception:
     main_logger.debug(f"• Running with {this_process.num_threads()} threads")
 

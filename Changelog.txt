@@ -1,5 +1,9 @@
 UNRAID Status Screen Changelog:
 
+- v.3.11.3 (2025-12-15)
+    - Update copyright year and some references
+    - Minor repo cleanups
+
 - v.3.11.2 (2025-11-15)
     - Numerous code cleanups
     - Refactor the CPU temp sensor detection process

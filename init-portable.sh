@@ -1,8 +1,10 @@
 #!/bin/bash
 {
-# Initialization/bootstrap script for our monitoring script.
+# Initialization/bootstrap script for UNRAID_status-screen
+# If you're using this with a Python Docker,
+# use the main init script, not this one.
 # For changelog, check the 'changelog.txt' file.
-# Version = v.3.11.2
+# Version = v.3.11.3
 # by: WeegeeNumbuh1
 STARTTIME=$(date '+%s')
 BASEDIR=$(dirname $0)
